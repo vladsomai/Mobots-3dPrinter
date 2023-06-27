@@ -2,9 +2,11 @@
 #include "../includes.h"
 #include "Commands.h"
 #include "../SerialPort/SerialPort.h"
+#include "../LogService/LogService.h"
 
 namespace MotorNS 
 {
+    using namespace LogServiceNS;
     using namespace SerialPortNS;
 
     std::atomic<bool> Motor::isInitialized{ false };
@@ -23,9 +25,9 @@ namespace MotorNS
             if (mAxis == 255)
                 return;
 
-            std::cout << "Running service | Axis " << static_cast<uint32_t>(mAxis) << std::endl;
+            LogService::Instance()->LogInfo("Running service | Axis " + std::to_string(static_cast<uint32_t>(mAxis)));
 
-            BlockUntilQueueSize(50, 0);
+            //BlockUntilQueueSize(50, 0);
 
             std::vector<uint8_t>res{};
 
@@ -33,7 +35,7 @@ namespace MotorNS
 
             if (err != ErrorCode::NO_ERR)
             {
-                std::cout << "An error occured while executing a threaded command. Axis | " << static_cast<uint32_t>(mAxis) << std::endl;
+                LogService::Instance()->LogInfo("An error occured while executing a threaded command. Axis | " + std::to_string(static_cast<uint32_t>(mAxis)));
                 continue;
             }
 
@@ -48,10 +50,10 @@ namespace MotorNS
     Motor::Motor(uint8_t Axis) : Motor()
     {
         mAxis = Axis;
-        RunServiceTh = std::thread(&Motor::RunService, this);
+       // RunServiceTh = std::thread(&Motor::RunService, this);
     }
 
-    ErrorCode Motor::Initialize() 
+    ErrorCode Motor::Initialize()
     {
 
         ErrorCode res = ErrorCode::NO_ERR;
@@ -63,20 +65,33 @@ namespace MotorNS
 
         res = Reset(cmdResult);
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(550));
+        std::this_thread::sleep_for(std::chrono::milliseconds(600));
+
 
         res = EnableMOSFETs(cmdResult);
 
         if (res == ErrorCode::NO_ERR)
         {
-            std::cout << "Initialized!" << std::endl;
+            LogService::Instance()->LogInfo("Initialized!");
             isInitialized = true;
+        }
+
+        double maxVelocity = MotorUtils::SpeedProfiles.at(MotorSpeedProfile::Max);
+        ByteList velocity{};
+        MotorUtils::GetVelocity(maxVelocity, velocity);
+
+        cmdResult.clear();
+        res = SetMaximumVelocity(velocity, cmdResult);
+
+        if (res == ErrorCode::NO_ERR)
+        {
+            LogService::Instance()->LogInfo("Max velocity set to " + std::to_string(maxVelocity));
         }
 
         return res;
     }
 
-    ErrorCode Motor::BlockUntilQueueSize(uint32_t timeToBlockBetweenPoll, uint8_t blockUntilQueueSizeLess)
+    ErrorCode Motor::BlockUntilQueueSize(uint32_t timeToBlockBetweenPoll, size_t blockUntilQueueSizeLess)
     {
         size_t queueSize = 0;
 
@@ -98,14 +113,12 @@ namespace MotorNS
 
             if (resSize && queueSize > blockUntilQueueSizeLess)
             {
-                //std::cout << "Axis | " << axis << "Queue size is larger than " 
-                //  << blockUntilQueueSizeLess << ". Queue size: " << queueSize << std::endl;
                 std::this_thread::sleep_for(std::chrono::milliseconds(timeToBlockBetweenPoll));
             }
 
         } while (queueSize > blockUntilQueueSizeLess);
-
         return ErrorCode::NO_ERR;
+
     }
 
     ErrorCode Motor::Execute(
@@ -115,9 +128,14 @@ namespace MotorNS
         if (command.size() == 0)
             return ErrorCode::NO_ERR;
 
-        return SerialPort::Instance()->SendAndWaitForReply(command, result);
+        //LogService::Instance()->StartTimer();
+        auto res = SerialPort::Instance()->SendAndWaitForReply(command, result);
+        //LogService::Instance()->StopTimer();
+
+        return res;
     }
 
+    /*
     ErrorCode Motor::AddMoveCommandToQueue(
         MotorNS::Commands command,
         const std::vector<uint8_t>& params)
@@ -131,6 +149,7 @@ namespace MotorNS
 
         return res;
     }
+    */
 
     ErrorCode Motor::DisableMOSFETs(std::vector<uint8_t>& result)
     {
@@ -286,14 +305,18 @@ namespace MotorNS
         const std::vector<uint8_t>& params,
         std::vector<uint8_t>& command)
     {
-        //248 is the max uints we send in a 31 multi move cmd
+        //248 is the max uints we send in a 31 multi-move cmd
         command.reserve(248);
 
         command.insert(command.begin(),
-            { mAxis, static_cast<uint8_t>(Commands::MultiMove), 0xFD, //axis, cmd, length
-            0x1F, //multi-moves cmds
-            0xFF, 0xFF, 0xFF, 0x7F });//type of moves(only velocity for now)
+            { mAxis, static_cast<uint8_t>(Commands::MultiMove), 0x15, //axis, cmd, length=1
+            0x02, //multi-moves cmds
+            0x03, 0x00, 0x00, 0x00 });//type of moves(only velocity for now)
         command.insert(command.end(), params.begin(), params.end());
+
+        /*This is the last command we must append into a multi-move to reach 0 velocity*/
+        ByteList lastCmd = { 0x00, 0x00, 0x00, 0x00, 0x1F, 0x00, 0x00, 0x00 };
+        command.insert(command.end(), lastCmd.begin(), lastCmd.end());
     }
 
     ErrorCode Motor::MultiMove(

@@ -11,16 +11,14 @@
 #include <unordered_map>
 #include <mutex>
 #include <queue>
-
+#include <fstream>
+#include <filesystem>
 #include "ErrorCodes.h"
 
-#pragma warning(disable:4996)
-//#define _CRT_SECURE_NO_WARNINGS
 
-#define _CRT_SECURE_NO_WARNINGS 1 
-#define _WINSOCK_DEPRECATED_NO_WARNINGS 1 
 
-#pragma once
+using ByteList = std::vector<uint8_t>;
+
 //will be used for the sleep and open functions
 #ifdef _WIN32
 #include<windows.h>
@@ -28,5 +26,6 @@
 //MAC or Linux
 #include<unistd.h>
 #endif
+
 
 #endif // INCLUDES

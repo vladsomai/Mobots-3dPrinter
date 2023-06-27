@@ -7,6 +7,13 @@ namespace SerialPortNS
 {
 	using SerialPortHandle = FILE*;
 
+	/* Implements the serial port communication using C standard lib 
+	 * fopen
+	 * fclose
+	 * fwrite
+	 * fread
+	 * The desirable solution would be to implement the communication based on the OS.
+	 */
 	class SerialPort
 	{
 
@@ -16,7 +23,7 @@ namespace SerialPortNS
 
 		static std::unique_ptr<SerialPort> inline mInstance{ nullptr };
 
-		ErrorCode Send(const std::vector<uint8_t>& command);
+		ErrorCode Send(const ByteList& command);
 
 		SerialPort() = default;
 
@@ -35,8 +42,8 @@ namespace SerialPortNS
 		ErrorCode Connect(const std::string& COM_PORT);
 
 		ErrorCode SendAndWaitForReply(
-			const std::vector<uint8_t>& command,
-			std::vector<uint8_t>& result);
+			const ByteList& command,
+			ByteList& result);
 	};
 }
 #endif

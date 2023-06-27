@@ -2,9 +2,12 @@
 #include "../includes.h"
 
 #include "MoveQueue.h"
+#include "../LogService/LogService.h"
 
 namespace MoveQueueNS
 {
+	using namespace LogServiceNS;
+
 	std::vector<uint8_t> MoveQueue::back() const
 	{
 		std::scoped_lock<std::mutex> lockQueue{ MoveQueue::MoveQueueMutex };
@@ -27,13 +30,22 @@ namespace MoveQueueNS
 	void MoveQueue::pop()
 	{
 		std::scoped_lock<std::mutex> lockQueue{ MoveQueue::MoveQueueMutex };
+
 		if (mMoveQueue.size() > 0)
+		{
 			mMoveQueue.erase(mMoveQueue.begin());
+		}
 	}
 
 	void MoveQueue::push(const std::vector<uint8_t>& move)
 	{
 		std::scoped_lock<std::mutex> lockQueue{ MoveQueue::MoveQueueMutex };
+
+		if (mMoveQueue.size() > 2000)
+		{
+
+		}
+
 		mMoveQueue.push_back(std::move(move));
 	}
 

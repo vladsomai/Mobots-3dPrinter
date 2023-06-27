@@ -14,7 +14,7 @@ namespace PathFinder
 		pathResult.reserve(pathResult.size() + resolution);
 
 		double t = 0;
-		for (int i = 0; i < resolution; i++)
+		for (int i = 0; i <= resolution; i++)
 		{
 			t = static_cast<double>(i) / resolution;
 
@@ -44,7 +44,7 @@ namespace PathFinder
 		pathResult.reserve(pathResult.size() + resolution);
 
 		double t = 0;
-		for (int i = 0; i < resolution; i++)
+		for (int i = 0; i <= resolution; i++)
 		{
 			t = static_cast<double>(i) / resolution;
 

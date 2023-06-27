@@ -5,9 +5,11 @@
 
 #include "SerialPort.h"
 #include "../Motor/MotorUtils.h"
+#include "../LogService/LogService.h"
 
 namespace SerialPortNS
 {
+	using namespace LogServiceNS;
 	using namespace MotorNS;
 
 	std::mutex SerialPort::SerialPortMutex{};
@@ -20,7 +22,7 @@ namespace SerialPortNS
 		}
 	}
 
-	ErrorCode SerialPort::Send(const std::vector<uint8_t>& command)
+	ErrorCode SerialPort::Send(const ByteList& command)
 	{
 		if (!mPort)
 			return ErrorCode::INVALID_PORT;
@@ -68,11 +70,12 @@ namespace SerialPortNS
 
 		if (mPort != NULL)
 		{
-			std::cout << "Port " << COM_PORT << " is now open." << std::endl;
+			LogService::Instance()->LogInfo("Port " + COM_PORT + " is now open.");
 			return ErrorCode::NO_ERR;
 		}
-		else {
-			std::cout << "Port " << COM_PORT << " is invalid." << std::endl;
+		else 
+		{
+			LogService::Instance()->LogInfo("Port " + COM_PORT+" is invalid.");
 			return ErrorCode::INVALID_PORT;
 		}
 
@@ -86,11 +89,11 @@ namespace SerialPortNS
 
 		if (mPort != NULL)
 		{
-			std::cout << "Port " << COM_PORT << " is now open." << std::endl;
+			LogService::Instance()->LogInfo("Port " + COM_PORT + " is now open.");
 			return ErrorCode::NO_ERR;
 		}
 		else {
-			std::cout << "Port " << COM_PORT << " is invalid." << std::endl;
+			LogService::Instance()->LogInfo("Port " + COM_PORT + " is invalid.");
 			return ErrorCode::INVALID_PORT;
 		}
 #endif
@@ -98,14 +101,15 @@ namespace SerialPortNS
 	}
 
 	ErrorCode SerialPort::SendAndWaitForReply(
-		const std::vector<uint8_t>& command,
-		std::vector<uint8_t>& result)
+		const ByteList& command,
+		ByteList& result)
 	{
 		std::scoped_lock<std::mutex> instanceLock{ SerialPortMutex };
-
+		
 		if (mPort == NULL)
 		{
-			std::cout << "SendAndWaitForReply > Invalid port" << std::endl;
+			LogService::Instance()->LogInfo("SendAndWaitForReply -> Invalid port");
+
 			return ErrorCode::INVALID_PORT;
 		}
 

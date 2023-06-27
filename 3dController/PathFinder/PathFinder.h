@@ -12,7 +12,7 @@ namespace PathFinder
 
 	private:
 	public:
-		static const int DEFAULT_RESOLUTION = 100;
+		static const int DEFAULT_RESOLUTION = 101;
 
 		/*Calculates the Quadratic Bezier Curve between 2 points*/
 		void GetQuadraticBezierCurve(

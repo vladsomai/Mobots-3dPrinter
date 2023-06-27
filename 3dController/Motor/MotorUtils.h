@@ -182,15 +182,25 @@ namespace MotorNS {
         static constexpr double minimumPositiveAcceleration = 0.4;
         static constexpr double maximumPositiveAcceleration = 697544642.54;
 
-        static void GetVelocityAndTime(const double rpm, const double time, std::vector<uint8_t>& velocityTime)
+        static void GetVelocity(const double rpm, std::vector<uint8_t>& result)
         {
             auto internalVelocity = RPM_ToInternalVelocity(rpm);
             auto comVelocity = InternalVelocityToCommVelocity(internalVelocity);
-            MotorUtils::ConvertDoubleTo4xUint8Vect(comVelocity, velocityTime);
+            MotorUtils::ConvertDoubleTo4xUint8Vect(comVelocity, result);
+        }
+
+        static void GetTime(const double time, std::vector<uint8_t>& result)
+        {
+            auto timesteps = SecondToTimesteps(time);
+            MotorUtils::ConvertDoubleTo4xUint8Vect(timesteps, result);
+        }
+
+        static void GetVelocityAndTime(const double rpm, const double time, std::vector<uint8_t>& velocityTime)
+        {
+            GetVelocity(rpm, velocityTime);
 
             std::vector<uint8_t> timeVector{};
-            auto timesteps = SecondToTimesteps(time);
-            MotorUtils::ConvertDoubleTo4xUint8Vect(timesteps, timeVector);
+            GetTime(time, timeVector);
 
             velocityTime.insert(velocityTime.end(), timeVector.begin(), timeVector.end());
         }

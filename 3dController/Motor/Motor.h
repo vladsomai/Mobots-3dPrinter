@@ -4,7 +4,8 @@
 #include "../includes.h"
 #include "../SerialPort/SerialPort.h"
 #include "../MoveQueue/MoveQueue.h"
-#include "../Motor//Commands.h"
+#include "../Motor/Commands.h"
+#include "MotorUtils.h"
 
 namespace MotorNS
 {
@@ -28,7 +29,7 @@ namespace MotorNS
         std::thread RunServiceTh;
         void RunService();
 
-        ErrorCode BlockUntilQueueSize(uint32_t timeToBlockBetweenPoll, uint8_t blockUntilQueueSizeLess);
+        ErrorCode BlockUntilQueueSize(uint32_t timeToBlockBetweenPoll, size_t blockUntilQueueSizeLess);
 
         void GetMultiMoveCommand(
             const std::vector<uint8_t>& params,
@@ -39,11 +40,6 @@ namespace MotorNS
         ~Motor() = default;
 
         ErrorCode Initialize();
-
-        ErrorCode AddMoveCommandToQueue(
-            Commands command,
-            const std::vector<uint8_t>& params);
-
         ErrorCode DisableMOSFETs(std::vector<uint8_t>& result);
         ErrorCode EnableMOSFETs(std::vector<uint8_t>& result);
         ErrorCode TrapezoidMove(const std::vector<uint8_t>& params, 

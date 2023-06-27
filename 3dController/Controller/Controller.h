@@ -4,9 +4,13 @@
 #include "../includes.h"
 #include "../Motor/Commands.h"
 #include "../Motor/Motor.h"
+#include "../PathFinder/PathFinder.h"
+#include "../LogService/LogService.h"
+#include "../Motor/MotorUtils.h"
 
 namespace Controller
 {
+	using namespace LogServiceNS;
 	using namespace MotorNS;
 
 	class Controller
@@ -18,9 +22,6 @@ namespace Controller
 		explicit Controller(std::vector<uint8_t> axes);
 		~Controller();
 
-
-		/*Waits timeInMiliseconds and then return true if queue is full*/
-		//bool WaitIfQueueFull(uint32_t timeInMiliseconds, uint8_t axis);
 		void BlockUntilQueueSize(uint32_t timeToBlockBetweenPoll, uint8_t axis, uint8_t blockUntilQueueSizeLess);
 
 		ErrorCode Execute(
@@ -34,8 +35,14 @@ namespace Controller
 			const std::vector<uint8_t>& params,
 			uint8_t axis);
 
-		/*Distance each axis travel on a full motor rotation*/
-		static constexpr double DistancePerRotation = 28.0;
+		ErrorCode ExecuteMoveWithVelocity(std::vector<PathFinder::Point2d>& path, MotorSpeedProfile speedProfile = MotorSpeedProfile::Medium);
+		ErrorCode ExecuteBezierPath(std::vector<PathFinder::Point2d>& path);
+		/*Distance X axis travel on a full motor rotation*/
+		static constexpr double DistancePerRotationX = 28.0;
+		/*Distance Y axis travel on a full motor rotation*/
+		static constexpr double DistancePerRotationY = 28.0;
+		/*Distance Z axis travel on a full motor rotation*/
+		static constexpr double DistancePerRotationZ = 28.0;
 	};
 }
 

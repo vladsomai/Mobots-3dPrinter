@@ -3,11 +3,13 @@
 #include "Controller/Controller.h"
 #include "PathFinder/PathFinder.h"
 #include "PathFinder/Point2d.h"
-
+#include "G-CodeLoader/GCodeLoader.h"
 #include "Motor/MotorUtils.h"
 #include "SerialPort/SerialPort.h"
+#include "LogService/LogService.h"
 
 using namespace MotorNS;
+using namespace LogServiceNS;
 
 void getMultimove(MotorSpeedProfile speed, std::vector<uint8_t>& result, const std::vector<double>& times)
 {
@@ -40,63 +42,16 @@ void getMultimove(MotorSpeedProfile speed, std::vector<uint8_t>& result, const s
 	result.insert(result.end(), velTime.begin(), velTime.end());
 }
 
-void ExecuteBezierPath(std::vector<PathFinder::Point2d>& path, Controller::Controller& printer)
-{
-	std::vector<uint8_t> cmdResult{};
-	double previousX = 0;
-	double previousY = 0;
 
-	auto pSize = path.size();
-	for (int i = 0; i < pSize; i++)
-	{
-		printer.BlockUntilQueueSize(10, 'Y', 10);
-		printer.BlockUntilQueueSize(10, 'X', 10);
-
-		double t = static_cast<double>(i) / PathFinder::PathFinder::DEFAULT_RESOLUTION;
-		auto currentPoint = path[i];
-		//std::cout << "Q(" << t << ")= " << "P(" << currentPoint.x << ", " << currentPoint.y << ")" << std::endl;
-
-		double moveDistX = currentPoint.x - previousX;
-		double moveDistY = currentPoint.y - previousY;
-
-		std::cout << "Run " << i << std::endl;
-
-		auto rpm = MotorUtils::SpeedProfiles.at(MotorSpeedProfile::Medium);
-
-		double timeX = moveDistX / Controller::Controller::DistancePerRotation;
-		double timeY = moveDistY / Controller::Controller::DistancePerRotation;
-
-		//std::vector<uint8_t> mvWithVelParamX{};
-		//MotorUtils::GetVelocityAndTime(rpm, timeX, mvWithVelParamX);
-		//
-		//std::vector<uint8_t> mvWithVelParamY{};
-		//MotorUtils::GetVelocityAndTime(rpm, timeY, mvWithVelParamY);
-		//
-		//cmdResult.clear();
-		//printer.Execute(Commands::MultiMove, mvWithVelParamX, cmdResult, 'X');
-		//
-		//cmdResult.clear();
-		//printer.Execute(Commands::MultiMove, mvWithVelParamY, cmdResult, 'Y');
-
-		std::vector<uint8_t> trapezoidParamsX{};
-		MotorUtils::GetPositionAndTime(moveDistX, 0.05, trapezoidParamsX);
-
-		std::vector<uint8_t> trapezoidParamsY{};
-		MotorUtils::GetPositionAndTime(moveDistY, 0.05, trapezoidParamsY);
-
-		cmdResult.clear();
-		printer.Execute(Commands::TrapezoidMove, trapezoidParamsX, cmdResult, 'X');
-
-		cmdResult.clear();
-		printer.Execute(Commands::TrapezoidMove, trapezoidParamsY, cmdResult, 'Y');
-
-		previousX = currentPoint.x;
-		previousY = currentPoint.y;
-	}
-
-}
 
 using namespace SerialPortNS;
+using namespace GCodeLoaderNS;
+using namespace LogServiceNS;
+
+
+// There are other clocks, but this is usually the one you want.
+// It corresponds to CLOCK_MONOTONIC at the syscall level.
+
 
 int main()
 {
@@ -106,118 +61,64 @@ int main()
 	}
 	std::cout.precision(3);
 
+
+	GCodeLoader loader{};
+	loader.Load("texttogcode_line.gcode");
+
 	PathFinder::PathFinder finder{};
 
 	std::vector<PathFinder::Point2d> left{};
-
+	std::vector<PathFinder::Point2d> right{};
 
 	/*
+	*/
 	finder.GetCubicBezierCurve(
-		PathFinder::Point2d{ 0,0 },
-		PathFinder::Point2d{ 0,4 },
-		PathFinder::Point2d{ 2, 1 },
-		PathFinder::Point2d{ 4, 6 },
+		PathFinder::Point2d{ 0, 0 },
+		PathFinder::Point2d{ -112, 0 },
+		PathFinder::Point2d{ -28, -112 },
+		PathFinder::Point2d{ -84, 112 },
 		left
 	);
 
-	std::vector<PathFinder::Point2d> right{};
 	finder.GetCubicBezierCurve(
 		PathFinder::Point2d{ 0, 0 },
-		PathFinder::Point2d{ 0, -4 },
-		PathFinder::Point2d{ -4, 2 },
-		PathFinder::Point2d{ -2, -3 },
-		right
+		PathFinder::Point2d{ 112, 0 },
+		PathFinder::Point2d{ 28, 0 },
+		PathFinder::Point2d{ 84, 0 },
+		right,
+		3
+	);
+	
+	/*
+	* Test repetability for X axis
+	finder.GetQuadraticBezierCurve(
+		PathFinder::Point2d{ 0, 0 },
+		PathFinder::Point2d{ -112, 0 },
+		PathFinder::Point2d{ -56, -112 },
+		left,
+		50
+	);
+
+	finder.GetQuadraticBezierCurve(
+		PathFinder::Point2d{ 0, 0 },
+		PathFinder::Point2d{ 112, 0 },
+		PathFinder::Point2d{ 56, 0 },
+		right,
+		2
 	);
 	*/
-
-	finder.GetQuadraticBezierCurve(
-		PathFinder::Point2d{ 0, 0 },
-		PathFinder::Point2d{ -4, 0 },
-		PathFinder::Point2d{ -2, 0 },
-		left
-	);
-
-	std::vector<PathFinder::Point2d> right{};
-	finder.GetQuadraticBezierCurve(
-		PathFinder::Point2d{ 0, 0 },
-		PathFinder::Point2d{ 4, 0 },
-		PathFinder::Point2d{ 2, 0 },
-		right
-	);
-
 
 	std::vector<uint8_t> axes{ 'X','Y','Z' };
 	Controller::Controller printer(axes);
 
 	std::vector<uint8_t> cmdResult{};
 
-	while (true)
+	for (int i = 0; i < 500; i++)
 	{
-		//std::cout << "Main" << std::endl;
-
-		std::vector<uint8_t> multiMoveParams{};
-		std::vector<double> times(30, 0.01 );
-
-		getMultimove(MotorSpeedProfile::Medium, multiMoveParams, times);
-		//std::vector<uint8_t> mvWithVelParamX{};
-		//MotorUtils::GetVelocityAndTime(MotorSpeedProfile::Medium, 1, mvWithVelParamX);
-		//
-		//std::vector<uint8_t> mvWithVelParamY{};
-		//MotorUtils::GetVelocityAndTime(MotorSpeedProfile::Medium, 1, mvWithVelParamY);
-
-		cmdResult.clear();
-		printer.AddMoveCommandToQueue(Commands::MultiMove, multiMoveParams, 'X');
-
-		cmdResult.clear();
-		printer.AddMoveCommandToQueue(Commands::MultiMove, multiMoveParams, 'Y');
-
-		//ExecuteBezierPath(left, printer);
-		//ExecuteBezierPath(right, printer);
+		//printer.ExecuteBezierPath(left);
+		//printer.ExecuteBezierPath(right);
+		printer.ExecuteMoveWithVelocity(left, MotorSpeedProfile::Max);
+		printer.ExecuteMoveWithVelocity(right, MotorSpeedProfile::Max);
 	}
-
-	/*
-	{
-		std::vector<uint8_t> fastV{};
-		getMultimove(MotorSpeedProfile::Fast, fastV);
-		std::vector<uint8_t> lowV{};
-		getMultimove(MotorSpeedProfile::Max, lowV);
-		std::vector<uint8_t> fastV1{};
-		getMultimove(MotorSpeedProfile::Medium, fastV1);
-
-
-		printer.BlockUntilQueueSize(10, 'Y', 0);
-		printer.BlockUntilQueueSize(10, 'X', 0);
-		cmdResult.clear();
-		printer.Execute(Commands::MultiMove, fastV, cmdResult);
-
-		printer.BlockUntilQueueSize(10, 'Y', 0);
-		printer.BlockUntilQueueSize(10, 'X', 0);
-		cmdResult.clear();
-		printer.Execute(Commands::MultiMove, lowV, cmdResult);
-	}
-	*/
-
-	
-
-	/*
-	std::vector<uint8_t> test1x{ 0x58,
-	0x1D,
-	0x35,
-	0x06,
-	0x3F,0x00,0x00,0x00,
-	0xEB,0xC0,0x39,0x03,0x12,0x7A,0x00,0x00,0x15,0x3F,0xC6,0xFC,0x12,0x7A,0x00,0x00,0x4E,0x40,0x13,0x01,0x12,0x7A,0x00,0x00,0x6B,0xD9,0x5A,0xFF,0x12,0x7A,0x00,0x00,0xCE,0x58,0x34,0xFD,0x12,0x7A,0x00,0x00,0x79,0x8D,0x5D,0x02,0x12,0x7A,0x00,0x00 };
-	//SendAndWaitForReply(test1x);
-
-	std::vector<uint8_t> test1y{ 0x59,
-	0x1D,
-	0x35,
-	0x06,
-	0x3F,0x00,0x00,0x00,
-	0xEB,0xC0,0x39,0x03,0x12,0x7A,0x00,0x00,0x15,0x3F,0xC6,0xFC,0x12,0x7A,0x00,0x00,0x4E,0x40,0x13,0x01,0x12,0x7A,0x00,0x00,0x6B,0xD9,0x5A,0xFF,0x12,0x7A,0x00,0x00,0xCE,0x58,0x34,0xFD,0x12,0x7A,0x00,0x00,0x79,0x8D,0x5D,0x02,0x12,0x7A,0x00,0x00 };
-	//SendAndWaitForReply(test1y);
-
-		std::vector<std::vector<uint8_t>> comms{ test1x,test1y };
-		SendBatch(comms);
-	*/
 	return 0;
 }
