@@ -50,7 +50,7 @@ namespace MotorNS
     Motor::Motor(uint8_t Axis) : Motor()
     {
         mAxis = Axis;
-       // RunServiceTh = std::thread(&Motor::RunService, this);
+        //RunServiceTh = std::thread(&Motor::RunService, this, 1);
     }
 
     ErrorCode Motor::Initialize()
@@ -78,7 +78,7 @@ namespace MotorNS
 
         double maxVelocity = MotorUtils::SpeedProfiles.at(MotorSpeedProfile::Max);
         ByteList velocity{};
-        MotorUtils::GetVelocity(maxVelocity, velocity);
+        MotorUtils::GetVelocity(maxVelocity + 10, velocity);
 
         cmdResult.clear();
         res = SetMaximumVelocity(velocity, cmdResult);
@@ -107,6 +107,9 @@ namespace MotorNS
             {
                 return res;
             }
+
+            //LogService::Instance()->LogInfo("QueueSize for axis "
+            //    + std::to_string(mAxis) + ": " + std::to_string(queueSize));
 
             /*The last byte from result is the queue size*/
             queueSize = static_cast<size_t>(cmdResult[resSize - 1]);
@@ -168,6 +171,10 @@ namespace MotorNS
         std::vector<uint8_t>& result)
     {
         uint8_t size = static_cast<uint8_t>(params.size());
+        if (size != 8)
+        {
+            return ErrorCode::INVALID_PARAMETERS;
+        }
 
         std::vector<uint8_t> command{ mAxis, static_cast<uint8_t>(Commands::TrapezoidMove), size };
         command.insert(command.end(), params.begin(), params.end());
@@ -235,8 +242,10 @@ namespace MotorNS
         return ErrorCode::NOT_IMPLEMENTED;
     }
 
-    ErrorCode Motor::GetCurrentPosition() {
-        return ErrorCode::NOT_IMPLEMENTED;
+    ErrorCode Motor::GetCurrentPosition(std::vector<uint8_t>& result)
+    {
+        std::vector<uint8_t> command{ mAxis, static_cast<uint8_t>(Commands::GetCurrentPosition), 0 };
+        return Execute(command, result);
     }
 
     ErrorCode Motor::GetStatus() {
@@ -301,6 +310,7 @@ namespace MotorNS
         return ErrorCode::NOT_IMPLEMENTED;
     }
 
+    /*
     void Motor::GetMultiMoveCommand(
         const std::vector<uint8_t>& params,
         std::vector<uint8_t>& command)
@@ -309,24 +319,24 @@ namespace MotorNS
         command.reserve(248);
 
         command.insert(command.begin(),
-            { mAxis, static_cast<uint8_t>(Commands::MultiMove), 0x15, //axis, cmd, length=1
+            { mAxis, static_cast<uint8_t>(Commands::MultiMove), 0x15, //axis, cmd, length
             0x02, //multi-moves cmds
             0x03, 0x00, 0x00, 0x00 });//type of moves(only velocity for now)
         command.insert(command.end(), params.begin(), params.end());
 
-        /*This is the last command we must append into a multi-move to reach 0 velocity*/
-        ByteList lastCmd = { 0x00, 0x00, 0x00, 0x00, 0x1F, 0x00, 0x00, 0x00 };
+        ByteList lastCmd = { 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00 };
         command.insert(command.end(), lastCmd.begin(), lastCmd.end());
     }
+    */
+
+
 
     ErrorCode Motor::MultiMove(
         const std::vector<uint8_t>& params,
         std::vector<uint8_t>& result)
     {
         std::vector<uint8_t> buffer{};
-        GetMultiMoveCommand(params, buffer);
-
-        return Execute(buffer, result);
+        return Execute(params, result);
     }
 
     ErrorCode Motor::SetSafetyLimits() {
@@ -345,7 +355,36 @@ namespace MotorNS
         return ErrorCode::NOT_IMPLEMENTED;
     }
 
-    ErrorCode Motor::AddToQueueTest() {
+    ErrorCode Motor::AddToQueueTest() 
+    {
         return ErrorCode::NOT_IMPLEMENTED;
     }
+
+    void Motor::SetDistancePerRotation(double distance)
+    {
+        mDistancePerRotation = distance;
+    }
+
+    double Motor::GetDistancePerRotation()
+    {
+        return mDistancePerRotation;
+    }
+
+    ErrorCode Motor::AbsoluteMove(double distance, MotorSpeedProfile speedProfile)
+    {
+        auto speedRatio = MotorUtils::SpeedProfiles.at(speedProfile) / MotorUtils::SpeedProfiles.at(MotorSpeedProfile::Medium);
+        auto distanceTraveledWithCurrentSpeedInOneSecond = mDistancePerRotation * speedRatio;
+        auto timeForMove = distance / distanceTraveledWithCurrentSpeedInOneSecond;
+
+        ByteList cmdParams{};
+        MotorUtils::GetPositionAndTime(
+            MotorUtils::DistanceToRotaions(distance, mDistancePerRotation),
+            timeForMove,
+            cmdParams);
+
+        ByteList result{};
+     
+        return TrapezoidMove(cmdParams, result);
+    }
+
 }

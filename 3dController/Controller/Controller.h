@@ -8,9 +8,10 @@
 #include "../LogService/LogService.h"
 #include "../Motor/MotorUtils.h"
 
-namespace Controller
+namespace ControllerNS
 {
 	using namespace LogServiceNS;
+	using namespace PathFinderNS;
 	using namespace MotorNS;
 
 	class Controller
@@ -35,14 +36,17 @@ namespace Controller
 			const std::vector<uint8_t>& params,
 			uint8_t axis);
 
-		ErrorCode ExecuteMoveWithVelocity(std::vector<PathFinder::Point2d>& path, MotorSpeedProfile speedProfile = MotorSpeedProfile::Medium);
-		ErrorCode ExecuteBezierPath(std::vector<PathFinder::Point2d>& path);
-		/*Distance X axis travel on a full motor rotation*/
-		static constexpr double DistancePerRotationX = 28.0;
-		/*Distance Y axis travel on a full motor rotation*/
-		static constexpr double DistancePerRotationY = 28.0;
-		/*Distance Z axis travel on a full motor rotation*/
-		static constexpr double DistancePerRotationZ = 28.0;
+		ErrorCode AbsoluteMove(double distance, MotorSpeedProfile speedProfile, uint8_t axis);
+
+		ErrorCode ExecuteMoveWithVelocity(std::vector<Point2d>& path, MotorSpeedProfile speedProfile = MotorSpeedProfile::Medium);
+		ErrorCode ExecuteBezierPath(std::vector<Point2d>& path);
+
+		/*Sets the distance a particular axis will travel in one full rotation*/
+		void SetDistancePerRotation(double distance, uint8_t axis);
+
+		/*Gets the distance particular axis will travel in one full rotation*/
+		double GetDistancePerRotation(uint8_t axis);
+		void InsertZeroMove();
 	};
 }
 

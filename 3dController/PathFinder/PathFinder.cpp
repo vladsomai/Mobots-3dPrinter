@@ -1,7 +1,7 @@
 #include "PathFinder.h"
 #include "Point2d.h"
 
-namespace PathFinder
+namespace PathFinderNS
 {
 	void PathFinder::GetQuadraticBezierCurve(
 		const Point2d& start,

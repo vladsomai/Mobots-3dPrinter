@@ -3,11 +3,23 @@
 
 enum class ErrorCode {
 	NO_ERR,
+
+	/*File reader*/
+	LOGFILENOTFOUND,
+
+	/*Serial port*/
 	INVALID_PORT,
 	INVALID_COMMAND,
+
+	/*Motor commands*/
+	INVALID_PARAMETERS,
 	NOT_IMPLEMENTED,
+
+	/*GCode*/
 	GCODEFILENOTFOUND,
-	LOGFILENOTFOUND
+	GCODECOMMENT,
+	GCODEINVALID
+
 };
 
 #endif // !ERROR_CODES

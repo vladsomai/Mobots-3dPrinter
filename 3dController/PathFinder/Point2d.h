@@ -1,7 +1,7 @@
 #ifndef POINT
 #define POINT
 
-namespace PathFinder
+namespace PathFinderNS
 {
 	struct Point2d
 	{
@@ -79,6 +79,20 @@ namespace PathFinder
 
 			return *this;
 		}
+
+		bool operator==(const Point2d& rhs)
+		{
+			if (Equals(this->x, rhs.x) &&
+				Equals(this->y, rhs.y))
+			{
+				return true;
+			}
+
+			return false;
+		}
+
+		Point2d() = default;
+		~Point2d() = default;
 
 		Point2d(double xParam, double yParam) : x{xParam},y{yParam}
 		{

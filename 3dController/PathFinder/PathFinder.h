@@ -4,18 +4,17 @@
 #include "../includes.h"
 #include "Point2d.h"
 
-namespace PathFinder 
+namespace PathFinderNS
 {
 
 	class PathFinder 
 	{
-
 	private:
 	public:
 		static const int DEFAULT_RESOLUTION = 101;
 
 		/*Calculates the Quadratic Bezier Curve between 2 points*/
-		void GetQuadraticBezierCurve(
+		static void GetQuadraticBezierCurve(
 			const Point2d& start, 
 			const Point2d& end, 
 			const Point2d& control, 
@@ -25,7 +24,7 @@ namespace PathFinder
 		
 		
 		/*Calculates the Cubic Bezier Curve between 2 points*/
-		void GetCubicBezierCurve(
+		static void GetCubicBezierCurve(
 			const Point2d& start, 
 			const Point2d& end, 
 			const Point2d& controlStart, 

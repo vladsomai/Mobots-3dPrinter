@@ -19,6 +19,8 @@ namespace MotorNS
         std::mutex MoveMutex;
         MoveQueue mMoveCommands{};
 
+        double mDistancePerRotation{};
+
         static std::atomic<bool> isInitialized;
 
         ErrorCode Execute(
@@ -29,17 +31,27 @@ namespace MotorNS
         std::thread RunServiceTh;
         void RunService();
 
-        ErrorCode BlockUntilQueueSize(uint32_t timeToBlockBetweenPoll, size_t blockUntilQueueSizeLess);
-
         void GetMultiMoveCommand(
-            const std::vector<uint8_t>& params,
-            std::vector<uint8_t>& command);
+            std::vector<Move> moves,
+            std::vector<uint8_t>& command,
+            bool insertEmptyFinalMove);
     public:
         Motor(uint8_t Axis);
         Motor();
         ~Motor() = default;
 
         ErrorCode Initialize();
+        
+        /*Sets the distance this particular axis will travel in one full rotation*/
+        void SetDistancePerRotation(double distance);
+
+        /*Gets the distance this particular axis will travel in one full rotation*/
+        double GetDistancePerRotation();
+        
+        ErrorCode AbsoluteMove(double distance, MotorSpeedProfile speedProfile);
+
+        ErrorCode BlockUntilQueueSize(uint32_t timeToBlockBetweenPoll, size_t blockUntilQueueSizeLess);
+
         ErrorCode DisableMOSFETs(std::vector<uint8_t>& result);
         ErrorCode EnableMOSFETs(std::vector<uint8_t>& result);
         ErrorCode TrapezoidMove(const std::vector<uint8_t>& params, 
@@ -57,7 +69,7 @@ namespace MotorNS
         ErrorCode EmergencyStop();
         ErrorCode ZeroPosition();
         ErrorCode Homing();
-        ErrorCode GetCurrentPosition();
+        ErrorCode GetCurrentPosition(std::vector<uint8_t>& result);
         ErrorCode GetStatus();
         ErrorCode GoToClosedLoop();
         ErrorCode GetUpdateFrequency();

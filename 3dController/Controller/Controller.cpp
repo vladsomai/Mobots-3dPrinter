@@ -3,7 +3,7 @@
 #include "Controller.h"
 #include <stdio.h>
 
-namespace Controller
+namespace ControllerNS
 {
 	using namespace MotorNS;
 
@@ -22,6 +22,9 @@ namespace Controller
 		for (const auto& axis : axes)
 		{
 			mAxes[axis] = std::make_unique<Motor>(axis);
+
+			/*Shall be set by the user when calibrating*/
+			mAxes[axis]->SetDistancePerRotation(28.0);
 		}
 	}
 
@@ -29,7 +32,7 @@ namespace Controller
 		Commands command,
 		const std::vector<uint8_t>& params,
 		std::vector<uint8_t>& result,
-		uint8_t axis) 
+		uint8_t axis)
 	{
 		ErrorCode err = ErrorCode::NO_ERR;
 
@@ -59,6 +62,9 @@ namespace Controller
 		case Commands::SetMaximumVelocity:
 			err = mAxes[axis]->SetMaximumVelocity(params, result);
 			break;
+		case Commands::GetCurrentPosition:
+			err = mAxes[axis]->GetCurrentPosition(result);
+			break;
 		default:
 			return ErrorCode::NOT_IMPLEMENTED;
 		}
@@ -75,112 +81,143 @@ namespace Controller
 		return ErrorCode::NO_ERR;
 	}
 
-	void Controller::BlockUntilQueueSize(uint32_t timeToBlockBetweenPoll, uint8_t axis, uint8_t blockUntilQueueSizeLess)
+	ErrorCode Controller::AbsoluteMove(double distance, MotorSpeedProfile speedProfile, uint8_t axis)
 	{
-		size_t queueSize = 0;
-
-		do
-		{
-			ByteList cmdResult{};
-
-			ErrorCode res = Execute(Commands::GetQueueSize, ByteList(), cmdResult, axis);
-			size_t resSize = cmdResult.size();
-
-			if (res != ErrorCode::NO_ERR && resSize != 4)
-			{
-				return;
-			}
-
-			/*The last byte from result is the queue size*/
-			queueSize = static_cast<size_t>(cmdResult[resSize - 1]);
-
-			//LogService::Instance()->LogInfo("QueueSize for axis " + std::to_string(axis) + ": " + std::to_string(queueSize));
-
-			if (resSize && queueSize > blockUntilQueueSizeLess)
-			{
-				std::this_thread::sleep_for(std::chrono::milliseconds(timeToBlockBetweenPoll));
-			}
-
-		} while (queueSize > blockUntilQueueSizeLess);
+		return mAxes[axis]->AbsoluteMove(distance, speedProfile);
+	}
+	
+	void Controller::InsertZeroMove()
+	{
+		std::vector<uint8_t> cmdResultX{};
+		std::vector<uint8_t> cmdParamsX{};
+		std::vector<Move> movesX{};
+		movesX.push_back(Move(MoveType::Velocity, 0, 1));
+		MotorUtils::GetMultiMoveCommand('X', movesX, cmdParamsX, false);
+		LogService::Instance()->LogInfo("Inserting Zero move for all axes");
+		Execute(Commands::MultiMove, cmdParamsX, cmdParamsX, 255);
 	}
 
-	ErrorCode Controller::ExecuteMoveWithVelocity(std::vector<PathFinder::Point2d>& path, MotorSpeedProfile speedProfile)
+	ErrorCode Controller::ExecuteMoveWithVelocity(std::vector<Point2d>& path, MotorSpeedProfile speedProfile)
 	{
-		/*Medium speed profile will fully rotate the motor in 1s*/
-		const double mmToSpeedRatio =
-			MotorUtils::SpeedProfiles.at(speedProfile) / MotorUtils::SpeedProfiles.at(MotorSpeedProfile::Medium);
 
-		const double mmPerSecondX = mmToSpeedRatio * Controller::Controller::DistancePerRotationX;
-		const double mmPerSecondY = mmToSpeedRatio * Controller::Controller::DistancePerRotationY;
 
-		std::vector<uint8_t> cmdResult{};
 		double previousX = 0;
 		double previousY = 0;
 
-		auto pSize = path.size();
+		InsertZeroMove();
+
+		const auto pSize = path.size();
 		for (int i = 0; i < pSize; i++)
 		{
-			//max queue size should be 1 when sending next command, otherwise axes get out of sync
-			BlockUntilQueueSize(1, 'X', 2);
-			BlockUntilQueueSize(1, 'Y', 2);
+			/*Medium speed profile will fully rotate the motor in 1s*/
+			const double mmToSpeedRatio =
+				MotorUtils::SpeedProfiles.at(speedProfile) / MotorUtils::SpeedProfiles.at(MotorSpeedProfile::Medium);
 
-			double t = static_cast<double>(i) / PathFinder::PathFinder::DEFAULT_RESOLUTION;
-			auto currentPoint = path[i];
-			/*
-			LogService::Instance()->LogInfo("Q(" +
-				std::to_string(t) + ")= " +
-				"P(" +
-				std::to_string(currentPoint.x) +
-				", " +
-				std::to_string(currentPoint.y) + ")");
-			*/
+			double mmPerSecondX = mmToSpeedRatio * mAxes['X']->GetDistancePerRotation();
+			double mmPerSecondY = mmToSpeedRatio * mAxes['Y']->GetDistancePerRotation();
 
-			double moveDistX = currentPoint.x - previousX;
-			double moveDistY = currentPoint.y - previousY;
+			const auto currentPoint = path[i];
 
-			LogService::Instance()->LogInfo("Run " + std::to_string(i));  
-
+			/*X time calculation*/
+			const double moveDistX = currentPoint.x - previousX;
+			double timeX = fabs(moveDistX / mmPerSecondX);
 			auto rpmX = MotorUtils::SpeedProfiles.at(speedProfile);
+			/*Y time calculation*/
+			const double moveDistY = currentPoint.y - previousY;
+			double timeY = fabs(moveDistY / mmPerSecondY);
 			auto rpmY = MotorUtils::SpeedProfiles.at(speedProfile);
 
-			/* Determine the move direction*/
-			if (moveDistX<0)
+
+			/*Adjust the speed for the small move axis so it arrives in the same as the long one*/
+			if (Equals(timeX, timeY))
+			{
+				//OK, we do not need to adjust anything
+			}
+			else if (timeX > timeY)
+			{
+				/* Y axis reaches its final position faster,
+				  recalculate the time and velocity so it reaches the position at the same time as X
+				*/
+				mmPerSecondY = fabs(moveDistY / timeX);
+
+				timeY = fabs(moveDistY / mmPerSecondY);
+				
+				/*Recalculate the rpm*/
+				auto spRatio = mmPerSecondY / mAxes['Y']->GetDistancePerRotation();
+				rpmY = spRatio * MotorUtils::SpeedProfiles.at(MotorSpeedProfile::Medium);
+			}
+			else
+			{
+				/* X axis reaches its final position faster,
+				   recalculate the time and velocity so it reaches the position at the same time as Y
+				*/
+				mmPerSecondX = fabs(moveDistX / timeY);
+
+				timeX = fabs(moveDistX / mmPerSecondX);
+
+				/*Recalculate the rpm*/
+				auto spRatio = mmPerSecondX / mAxes['X']->GetDistancePerRotation();
+				rpmX = spRatio * MotorUtils::SpeedProfiles.at(MotorSpeedProfile::Medium);
+
+			}
+
+			/*X prepare the move command*/
+			if (moveDistX < 0)
 			{
 				rpmX *= -1;
 			}
+			std::vector<uint8_t> cmdParamsX{};
+			std::vector<Move> movesX{};
+			movesX.push_back(Move(MoveType::Velocity, rpmX, timeX));
+			MotorUtils::GetMultiMoveCommand('X', movesX, cmdParamsX, true);
 
+	
+			/*Y prepare the move command*/
 			if (moveDistY < 0)
 			{
 				rpmY *= -1;
 			}
+			std::vector<uint8_t> cmdParamsY{};
+			std::vector<Move> movesY{};
+			movesY.push_back(Move(MoveType::Velocity, rpmY, timeY));
+			MotorUtils::GetMultiMoveCommand('Y', movesY, cmdParamsY, true);
 
-			double timeX = moveDistX / mmPerSecondX;
-			double timeY = moveDistY / mmPerSecondY;
-			LogService::Instance()->LogInfo("TimeX " + std::to_string(timeX));
+			mAxes['X']->BlockUntilQueueSize(1, 2);
+			mAxes['Y']->BlockUntilQueueSize(1, 2);
 
-			std::vector<uint8_t> mvWithVelParamX{};
-			MotorUtils::GetVelocityAndTime(rpmX, timeX, mvWithVelParamX);
-			
-			std::vector<uint8_t> mvWithVelParamY{};
-			MotorUtils::GetVelocityAndTime(rpmY, timeY, mvWithVelParamY);
-			
-			cmdResult.clear();
-			LogService::Instance()->StartTimer();
-			Execute(Commands::MultiMove, mvWithVelParamX, cmdResult, 'X');
-			LogService::Instance()->StopTimer();
-			
-			cmdResult.clear();
-			Execute(Commands::MultiMove, mvWithVelParamY, cmdResult, 'Y');
+			/*Move execution*/
+			LogService::Instance()->LogInfo("Run " + std::to_string(i) +
+				". Moving to: X_" +
+				std::to_string(currentPoint.x) +
+				//std::to_string(timeX) +
+				" Y_" +
+				std::to_string(currentPoint.y)
+				//std::to_string(timeY)
+			);
+
+			//LogService::Instance()->StartTimer();
+
+			std::vector<uint8_t> cmdResultX{};
+
+			std::thread xAxisTh = std::thread(&Controller::Execute, this,
+				Commands::MultiMove, std::ref(cmdParamsX), std::ref(cmdResultX), 'X');
+
+			std::vector<uint8_t> cmdResultY{};
+			Execute(Commands::MultiMove, cmdParamsY, cmdResultY, 'Y');
+
+			xAxisTh.join();
+
+			//LogService::Instance()->StopTimer();
 
 			previousX = currentPoint.x;
 			previousY = currentPoint.y;
 		}
+
 		LogService::Instance()->LogInfo("Finished MoveWithVelocity");
 		return ErrorCode::NO_ERR;
 	}
 
-
-	ErrorCode Controller::ExecuteBezierPath(std::vector<PathFinder::Point2d>& path)
+	ErrorCode Controller::ExecuteBezierPath(std::vector<Point2d>& path)
 	{
 		std::vector<uint8_t> cmdResult{};
 		double previousX = 0;
@@ -189,10 +226,10 @@ namespace Controller
 		auto pSize = path.size();
 		for (int i = 0; i <= pSize; i++)
 		{
-			BlockUntilQueueSize(1, 'Y', 2);
-			BlockUntilQueueSize(1, 'X', 2);
+			mAxes['X']->BlockUntilQueueSize(1, 1);
+			mAxes['Y']->BlockUntilQueueSize(1, 1);
 
- 			double t = static_cast<double>(i) / PathFinder::PathFinder::DEFAULT_RESOLUTION;
+			//double t = static_cast<double>(i) / PathFinder::PathFinder::DEFAULT_RESOLUTION;
 			auto currentPoint = path[i];
 
 			double moveDistX = currentPoint.x - previousX;
@@ -216,4 +253,17 @@ namespace Controller
 
 		return ErrorCode::NO_ERR;
 	}
+
+	/*Sets the distance a particular axis will travel in one full rotation*/
+	void Controller::SetDistancePerRotation(double distance, uint8_t axis)
+	{
+		mAxes[axis]->SetDistancePerRotation(distance);
+	}
+
+	/*Gets the distance a particular axis will travel in one full rotation*/
+	double Controller::GetDistancePerRotation(uint8_t axis)
+	{
+		return mAxes[axis]->GetDistancePerRotation();
+	}
+
 }

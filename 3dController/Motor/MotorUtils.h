@@ -5,11 +5,32 @@
 
 namespace MotorNS {
 
-    enum MotorSpeedProfile {
+    enum MotorSpeedProfile 
+    {
         Low,
         Medium,
         Fast,
         Max
+    };
+
+    enum MoveType
+    {
+        Velocity,
+        Acceleration
+    };
+
+    struct Move
+    {
+        MoveType moveType{};
+
+        /*rpm^2 or rpm*/
+        double accOrVel{};
+        double time{};
+
+        Move(MoveType moveTypeParam, double accOrVelParam, double timeParam) :
+            moveType{moveTypeParam}, accOrVel{accOrVelParam}, time{timeParam}
+        {
+        }
     };
 
     class MotorUtils
@@ -105,19 +126,53 @@ namespace MotorNS {
             return 0;
         }
 
-        static void ConvertDoubleTo4xUint8Vect(const double input, std::vector<uint8_t>& result)
+
+        static void ConvertNumberTo4xUint8Vect(const double input, std::vector<uint8_t>& result)
+        {
+            ConvertNumberTo4xUint8Vect(static_cast<uint32_t>(input), result);
+        }
+
+        static void ConvertNumberTo4xUint8Vect(const int32_t input, std::vector<uint8_t>& result)
+        {
+            ConvertNumberTo4xUint8Vect(static_cast<uint32_t>(input), result);
+        }
+
+        static void ConvertNumberTo4xUint8Vect(const uint32_t input, std::vector<uint8_t>& result)
         {
             uint32_t b1mask{ 0x000000FF };
             uint32_t b2mask{ 0x0000FF00 };
             uint32_t b3mask{ 0x00FF0000 };
             uint32_t b4mask{ 0xFF000000 };
 
-            uint32_t intInput = static_cast<uint32_t>(input);
+            result.push_back(static_cast<uint8_t>( input & b1mask));
+            result.push_back(static_cast<uint8_t>((input & b2mask) >> 8));
+            result.push_back(static_cast<uint8_t>((input & b3mask) >> 16));
+            result.push_back(static_cast<uint8_t>((input & b4mask) >> 24));
+        }
 
-            result.push_back(static_cast<uint8_t>(intInput & b1mask));
-            result.push_back(static_cast<uint8_t>((intInput & b2mask) >> 8));
-            result.push_back(static_cast<uint8_t>((intInput & b3mask) >> 16));
-            result.push_back(static_cast<uint8_t>((intInput & b4mask) >> 24));
+        /*Get the travel distance in rotations*/
+        static double DistanceToRotaions(const double distance, double DistancePerRotation)
+        {
+            return distance / DistancePerRotation;
+        }
+
+        /*Get the travel distance in microsteps*/
+        static int32_t DistanceToMicrosteps(const double distance, double DistancePerRotation)
+        {
+            double rotations = distance / DistancePerRotation;
+            return RotationsToMicrosteps(rotations);
+        }
+
+        /*Get the travel distance in milimeter*/
+        static double MicrostepsToDistance(const int32_t microsteps, double DistancePerRotation)
+        {
+            double rotations = static_cast<double>(microsteps) / 645120;
+            return rotations * DistancePerRotation;
+        }
+
+        static double MicrostepsToRotations(const double microsteps)
+        {
+            return microsteps / 645120;
         }
 
         static double RotationsToMicrosteps(const double rotations)
@@ -182,17 +237,24 @@ namespace MotorNS {
         static constexpr double minimumPositiveAcceleration = 0.4;
         static constexpr double maximumPositiveAcceleration = 697544642.54;
 
+        static void GetAcceleration(const double rpmSq, std::vector<uint8_t>& result)
+        {
+            auto internalAcceleration = RPMSquared_ToInternalAcceleration(rpmSq);
+            auto comAcceleration = InternalAccelerationToCommAcceleration(internalAcceleration);
+            MotorUtils::ConvertNumberTo4xUint8Vect(comAcceleration, result);
+        }
+
         static void GetVelocity(const double rpm, std::vector<uint8_t>& result)
         {
             auto internalVelocity = RPM_ToInternalVelocity(rpm);
             auto comVelocity = InternalVelocityToCommVelocity(internalVelocity);
-            MotorUtils::ConvertDoubleTo4xUint8Vect(comVelocity, result);
+            MotorUtils::ConvertNumberTo4xUint8Vect(comVelocity, result);
         }
 
         static void GetTime(const double time, std::vector<uint8_t>& result)
         {
             auto timesteps = SecondToTimesteps(time);
-            MotorUtils::ConvertDoubleTo4xUint8Vect(timesteps, result);
+            MotorUtils::ConvertNumberTo4xUint8Vect(timesteps, result);
         }
 
         static void GetVelocityAndTime(const double rpm, const double time, std::vector<uint8_t>& velocityTime)
@@ -205,18 +267,93 @@ namespace MotorNS {
             velocityTime.insert(velocityTime.end(), timeVector.begin(), timeVector.end());
         }
 
-        static void GetPositionAndTime(const double position, const double time, std::vector<uint8_t>& positionTime)
+        static void GetPositionAndTime(const double rotations, const double time, std::vector<uint8_t>& rotationTime)
         {
-            auto microsteps = RotationsToMicrosteps(position);
-            MotorUtils::ConvertDoubleTo4xUint8Vect(microsteps, positionTime);
+            auto microsteps = RotationsToMicrosteps(rotations);
+            MotorUtils::ConvertNumberTo4xUint8Vect(microsteps, rotationTime);
 
             std::vector<uint8_t> timeVector{};
             auto timesteps = SecondToTimesteps(time);
-            MotorUtils::ConvertDoubleTo4xUint8Vect(timesteps, timeVector);
+            MotorUtils::ConvertNumberTo4xUint8Vect(timesteps, timeVector);
 
-            positionTime.insert(positionTime.end(), timeVector.begin(), timeVector.end());
+            rotationTime.insert(rotationTime.end(), timeVector.begin(), timeVector.end());
+        }
+
+        static void GetAccelerationAndTime(const double rpmSq, const double time, std::vector<uint8_t>& accelerationTime)
+        {
+            GetAcceleration(rpmSq, accelerationTime);
+
+            std::vector<uint8_t> timeVector{};
+            GetTime(time, timeVector);
+
+            accelerationTime.insert(accelerationTime.end(), timeVector.begin(), timeVector.end());
+        }
+
+        static void GetMultiMoveCommand(
+            uint8_t axis,
+            std::vector<Move> moves,
+            std::vector<uint8_t>& command,
+            bool insertEmptyFinalMove)
+        {
+            //248 is the max uints we send in a 31 multi-move cmd
+            command.reserve(248);
+            std::vector<uint8_t> params{};
+
+            size_t movesSize = moves.size();
+
+            uint8_t cmdLength = 5 + (8 * movesSize);
+
+            uint32_t moveTypes = 0;
+
+            for (size_t i = 0; i < movesSize; i++)
+            {
+                auto move = moves.at(i);
+
+                if (move.moveType == MoveType::Velocity)
+                {
+                    uint32_t mask = 1 << i;
+                    moveTypes |= mask;
+                    ByteList velTime{};
+                    MotorUtils::GetVelocityAndTime(move.accOrVel, move.time, velTime);
+                    params.insert(params.end(), velTime.begin(), velTime.end());
+                }
+                else
+                {
+                    ByteList accTime{};
+                    MotorUtils::GetAccelerationAndTime(move.accOrVel, move.time, accTime);
+                    params.insert(params.end(), accTime.begin(), accTime.end());
+                }
+            }
+
+            if (insertEmptyFinalMove)
+            {
+                uint32_t mask = 1 << movesSize;
+                moveTypes |= mask;
+
+                cmdLength += 8;
+                movesSize += 1;
+            }
+
+            ByteList moveTypesVect{};
+            MotorUtils::ConvertNumberTo4xUint8Vect(moveTypes, moveTypesVect);
+
+            command.insert(command.begin(),
+                { axis, static_cast<uint8_t>(Commands::MultiMove), cmdLength, //axis, cmd, length
+                static_cast<uint8_t>(movesSize) });//how many moves into this one shot
+
+            command.insert(command.end(), moveTypesVect.begin(), moveTypesVect.end());
+
+            command.insert(command.end(), params.begin(), params.end());
+
+            //This is the last command we must append into a multi-move to reach 0 velocity
+            if (insertEmptyFinalMove)
+            {
+                ByteList lastCmd = { 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00 };
+                command.insert(command.end(), lastCmd.begin(), lastCmd.end());
+            }
         }
     };
+
 
 }
 #endif // !MOTOR_UTILS

@@ -6,7 +6,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 add_executable (${PROJECT_NAME} 
 "main.cpp" 
 "includes.h" 
-"icon.rc")
+"icon.rc" 
+"MathHelper.h")
 
 add_subdirectory ("Motor")
 add_subdirectory ("Controller")

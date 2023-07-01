@@ -13,9 +13,9 @@
 #include <queue>
 #include <fstream>
 #include <filesystem>
+
+#include "MathHelper.h"
 #include "ErrorCodes.h"
-
-
 
 using ByteList = std::vector<uint8_t>;
 
@@ -28,4 +28,5 @@ using ByteList = std::vector<uint8_t>;
 #endif
 
 
+ 
 #endif // INCLUDES
