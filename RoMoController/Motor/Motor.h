@@ -15,6 +15,7 @@ namespace MotorNS
     {
     private:
         uint8_t mAxis{ 255 };
+        std::string mAxisName{};
 
         std::mutex MoveMutex;
         MoveQueue mMoveCommands{};
@@ -29,7 +30,14 @@ namespace MotorNS
 
         /*This will be executed on a thread that listens to to the mMoveCommands*/
         std::thread RunServiceTh;
+        std::atomic<bool> terminateRunServiceTh{ false };
+        static std::atomic<bool> moveFurther;
         void RunService();
+
+        /*Method that updates the time for each motor*/
+        std::atomic<bool> mStopTimeTh{ false };
+        std::thread TimeTh{};
+        void TimeThread();
 
         void GetMultiMoveCommand(
             std::vector<Move> moves,
@@ -38,7 +46,7 @@ namespace MotorNS
     public:
         Motor(uint8_t Axis);
         Motor();
-        ~Motor() = default;
+        ~Motor();
 
         ErrorCode Initialize();
         
@@ -52,6 +60,10 @@ namespace MotorNS
 
         ErrorCode BlockUntilQueueSize(uint32_t timeToBlockBetweenPoll, size_t blockUntilQueueSizeLess);
 
+        ErrorCode AddMoveCommandToQueue(
+            Commands command,
+            const std::vector<uint8_t>& params);
+
         ErrorCode DisableMOSFETs(std::vector<uint8_t>& result);
         ErrorCode EnableMOSFETs(std::vector<uint8_t>& result);
         ErrorCode TrapezoidMove(const std::vector<uint8_t>& params, 
@@ -63,9 +75,12 @@ namespace MotorNS
         ErrorCode StartCalibration();
         ErrorCode CaptureHallSensorData();
         ErrorCode ResetTime();
-        ErrorCode TimeSync();
+        ErrorCode TimeSync(
+            const std::vector<uint8_t>& params,
+            std::vector<uint8_t>& result);
         ErrorCode GetMotorCurrentTime();
         ErrorCode GetQueueSize(std::vector<uint8_t>& result);
+        ErrorCode GetQueueSize(size_t& queueSize);
         ErrorCode EmergencyStop();
         ErrorCode ZeroPosition();
         ErrorCode Homing();

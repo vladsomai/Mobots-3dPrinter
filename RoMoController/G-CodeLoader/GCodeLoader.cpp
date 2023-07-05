@@ -41,14 +41,18 @@ namespace GCodeLoaderNS
 
 			Point2d point{};
 
-			if (command.at(command.size() - 1) == '1')
+			if (command == "G01" ||
+				command == "G1" || 
+				command == "G0"||
+				command == "G00")
 			{
 				double z{};
 				double f{};
 				res = ConvertG01(keys, point, z, f);
 				points.push_back(point);
 			}
-			else if (command.at(command.size() - 1) == '5')
+			else if (command == "G05" ||
+				command == "G5")
 			{
 				res = ConvertG05(keys, points);
 			}

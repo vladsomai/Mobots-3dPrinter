@@ -82,8 +82,8 @@ namespace PathFinderNS
 
 		bool operator==(const Point2d& rhs)
 		{
-			if (Equals(this->x, rhs.x) &&
-				Equals(this->y, rhs.y))
+			if (MathHelper::Equals(this->x, rhs.x) &&
+				MathHelper::Equals(this->y, rhs.y))
 			{
 				return true;
 			}

@@ -23,18 +23,11 @@ namespace ControllerNS
 		explicit Controller(std::vector<uint8_t> axes);
 		~Controller();
 
-		void BlockUntilQueueSize(uint32_t timeToBlockBetweenPoll, uint8_t axis, uint8_t blockUntilQueueSizeLess);
-
 		ErrorCode Execute(
 			Commands command,
 			const std::vector<uint8_t>& params,
 			std::vector<uint8_t>& result,
 			uint8_t axis = 255);
-
-		ErrorCode AddMoveCommandToQueue(
-			Commands command,
-			const std::vector<uint8_t>& params,
-			uint8_t axis);
 
 		ErrorCode AbsoluteMove(double distance, MotorSpeedProfile speedProfile, uint8_t axis);
 
@@ -46,7 +39,7 @@ namespace ControllerNS
 
 		/*Gets the distance particular axis will travel in one full rotation*/
 		double GetDistancePerRotation(uint8_t axis);
-		void InsertZeroMove();
+		void InsertZeroMove(double time);
 	};
 }
 

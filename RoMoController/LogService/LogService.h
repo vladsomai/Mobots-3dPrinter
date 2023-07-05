@@ -24,8 +24,8 @@ namespace LogServiceNS
 	class LogService
 	{
 	private:
-
 		std::ofstream mLogFile;
+		std::string mLogFilePath;
 
 		static std::unique_ptr<LogService> inline mInstance{ nullptr };
 
@@ -33,6 +33,7 @@ namespace LogServiceNS
 
 		static std::mutex LogMutex;
 
+		static uint32_t MaxLogFileSize;
 
 		time_point<Clock> mStartTimestamp{};
 

@@ -1,7 +1,4 @@
-﻿
-
-#include "Controller.h"
-#include <stdio.h>
+﻿#include "Controller.h"
 
 namespace ControllerNS
 {
@@ -72,51 +69,64 @@ namespace ControllerNS
 		return err;
 	}
 
-	ErrorCode Controller::AddMoveCommandToQueue(
-		Commands command,
-		const std::vector<uint8_t>& params,
-		uint8_t axis)
-	{
-		//return mAxes[axis]->AddMoveCommandToQueue(command, params);
-		return ErrorCode::NO_ERR;
-	}
-
 	ErrorCode Controller::AbsoluteMove(double distance, MotorSpeedProfile speedProfile, uint8_t axis)
 	{
 		return mAxes[axis]->AbsoluteMove(distance, speedProfile);
 	}
-	
-	void Controller::InsertZeroMove()
+
+	void Controller::InsertZeroMove(double time)
 	{
 		std::vector<uint8_t> cmdResultX{};
 		std::vector<uint8_t> cmdParamsX{};
 		std::vector<Move> movesX{};
-		movesX.push_back(Move(MoveType::Velocity, 0, 1));
-		MotorUtils::GetMultiMoveCommand('X', movesX, cmdParamsX, false);
+		movesX.push_back(Move(MoveType::Velocity, 0, time));
+		MotorUtils::GetMultiMoveCommand(255, movesX, cmdParamsX, false);
 		LogService::Instance()->LogInfo("Inserting Zero move for all axes");
 		Execute(Commands::MultiMove, cmdParamsX, cmdParamsX, 255);
 	}
 
 	ErrorCode Controller::ExecuteMoveWithVelocity(std::vector<Point2d>& path, MotorSpeedProfile speedProfile)
 	{
+		/*Medium speed profile will fully rotate the motor in 1s*/
+		const double mmToSpeedRatio =
+			MotorUtils::SpeedProfiles.at(speedProfile) / MotorUtils::SpeedProfiles.at(MotorSpeedProfile::Medium);
 
+		const double mmPerSecondX = mmToSpeedRatio * mAxes['X']->GetDistancePerRotation();
+		const double mmPerSecondY = mmToSpeedRatio * mAxes['Y']->GetDistancePerRotation();
 
 		double previousX = 0;
 		double previousY = 0;
 
-		InsertZeroMove();
+		mAxes['X']->BlockUntilQueueSize(1, 1);
+		mAxes['Y']->BlockUntilQueueSize(1, 1);
+
+		//Make sure we start all the axes at the same time
+		InsertZeroMove(1);
+
+		size_t queueSize{};
 
 		const auto pSize = path.size();
 		for (int i = 0; i < pSize; i++)
 		{
-			/*Medium speed profile will fully rotate the motor in 1s*/
-			const double mmToSpeedRatio =
-				MotorUtils::SpeedProfiles.at(speedProfile) / MotorUtils::SpeedProfiles.at(MotorSpeedProfile::Medium);
+			//LogService::Instance()->StartTimer();
+			LogService::Instance()->LogInfo("Starting run " + std::to_string(i));
 
-			double mmPerSecondX = mmToSpeedRatio * mAxes['X']->GetDistancePerRotation();
-			double mmPerSecondY = mmToSpeedRatio * mAxes['Y']->GetDistancePerRotation();
+			mAxes['X']->BlockUntilQueueSize(1, 1);
+			mAxes['Y']->BlockUntilQueueSize(1, 1);
+
+			//mAxes['X']->GetQueueSize(queueSize);
+			//LogService::Instance()->LogInfo("Queue size X: " + std::to_string(queueSize));
+			//
+			//mAxes['Y']->GetQueueSize(queueSize);
+			//LogService::Instance()->LogInfo("Queue size Y: " + std::to_string(queueSize));
 
 			const auto currentPoint = path[i];
+			Point2d nextPoint{};
+			
+			if (i < pSize - 1)
+			{
+				nextPoint = path[i + 1];
+			}
 
 			/*X time calculation*/
 			const double moveDistX = currentPoint.x - previousX;
@@ -127,38 +137,59 @@ namespace ControllerNS
 			double timeY = fabs(moveDistY / mmPerSecondY);
 			auto rpmY = MotorUtils::SpeedProfiles.at(speedProfile);
 
-
 			/*Adjust the speed for the small move axis so it arrives in the same as the long one*/
-			if (Equals(timeX, timeY))
+			if (MathHelper::Equals(timeX, timeY))
 			{
 				//OK, we do not need to adjust anything
 			}
 			else if (timeX > timeY)
 			{
-				/* Y axis reaches its final position faster,
-				  recalculate the time and velocity so it reaches the position at the same time as X
-				*/
-				mmPerSecondY = fabs(moveDistY / timeX);
+				if (moveDistY != 0)
+				{
+					/* Y axis reaches its final position faster,
+					  recalculate the time and velocity so it reaches the position at the same time as X
+					*/
+					double mmPerSecondY_temp = fabs(moveDistY / timeX);
 
-				timeY = fabs(moveDistY / mmPerSecondY);
-				
-				/*Recalculate the rpm*/
-				auto spRatio = mmPerSecondY / mAxes['Y']->GetDistancePerRotation();
-				rpmY = spRatio * MotorUtils::SpeedProfiles.at(MotorSpeedProfile::Medium);
+					timeY = fabs(moveDistY / mmPerSecondY_temp);
+
+					/*Recalculate the rpm*/
+					auto spRatio = mmPerSecondY_temp / mAxes['Y']->GetDistancePerRotation();
+					rpmY = spRatio * MotorUtils::SpeedProfiles.at(MotorSpeedProfile::Medium);
+				}
 			}
 			else
 			{
-				/* X axis reaches its final position faster,
-				   recalculate the time and velocity so it reaches the position at the same time as Y
-				*/
-				mmPerSecondX = fabs(moveDistX / timeY);
+				if (moveDistX != 0)
+				{
+					/* X axis reaches its final position faster,
+					   recalculate the time and velocity so it reaches the position at the same time as Y
+					*/
+					double mmPerSecondX_temp = fabs(moveDistX / timeY);
 
-				timeX = fabs(moveDistX / mmPerSecondX);
+					timeX = fabs(moveDistX / mmPerSecondX_temp);
 
-				/*Recalculate the rpm*/
-				auto spRatio = mmPerSecondX / mAxes['X']->GetDistancePerRotation();
-				rpmX = spRatio * MotorUtils::SpeedProfiles.at(MotorSpeedProfile::Medium);
+					/*Recalculate the rpm*/
+					auto spRatio = mmPerSecondX_temp / mAxes['X']->GetDistancePerRotation();
+					rpmX = spRatio * MotorUtils::SpeedProfiles.at(MotorSpeedProfile::Medium);
+				}
+			}
 
+			/*When reaching the last path point, insert a move with velocity set to 0
+			 * to avoid entering with the motor in an error
+			*/
+
+			double a = sqrt(pow(currentPoint.x - previousX, 2) + pow(currentPoint.y - previousY, 2));
+			double b = sqrt(pow(currentPoint.x - nextPoint.x, 2) + pow(currentPoint.y - nextPoint.y, 2));
+			double c = sqrt(pow(previousX - nextPoint.x, 2) + pow(previousY - nextPoint.y, 2));
+
+			double r = (pow(a, 2) + pow(b, 2) - pow(c, 2)) / (2 * a * b);
+			double angle = acos(r)*180/3.1415;
+
+			bool insertZeroMove = false;
+			if (i == pSize - 1)
+			{
+				insertZeroMove = true;
 			}
 
 			/*X prepare the move command*/
@@ -166,12 +197,12 @@ namespace ControllerNS
 			{
 				rpmX *= -1;
 			}
+
 			std::vector<uint8_t> cmdParamsX{};
 			std::vector<Move> movesX{};
 			movesX.push_back(Move(MoveType::Velocity, rpmX, timeX));
-			MotorUtils::GetMultiMoveCommand('X', movesX, cmdParamsX, true);
-
-	
+			MotorUtils::GetMultiMoveCommand('X', movesX, cmdParamsX, insertZeroMove);
+			
 			/*Y prepare the move command*/
 			if (moveDistY < 0)
 			{
@@ -180,25 +211,21 @@ namespace ControllerNS
 			std::vector<uint8_t> cmdParamsY{};
 			std::vector<Move> movesY{};
 			movesY.push_back(Move(MoveType::Velocity, rpmY, timeY));
-			MotorUtils::GetMultiMoveCommand('Y', movesY, cmdParamsY, true);
+			MotorUtils::GetMultiMoveCommand('Y', movesY, cmdParamsY, insertZeroMove);
 
-			mAxes['X']->BlockUntilQueueSize(1, 2);
-			mAxes['Y']->BlockUntilQueueSize(1, 2);
-
-			/*Move execution*/
 			LogService::Instance()->LogInfo("Run " + std::to_string(i) +
 				". Moving to: X_" +
 				std::to_string(currentPoint.x) +
-				//std::to_string(timeX) +
+				"_" +
+				std::to_string(timeX) +
 				" Y_" +
-				std::to_string(currentPoint.y)
-				//std::to_string(timeY)
+				std::to_string(currentPoint.y) +
+				"_" +
+				std::to_string(timeY)
 			);
 
-			//LogService::Instance()->StartTimer();
-
+			//Move execution
 			std::vector<uint8_t> cmdResultX{};
-
 			std::thread xAxisTh = std::thread(&Controller::Execute, this,
 				Commands::MultiMove, std::ref(cmdParamsX), std::ref(cmdResultX), 'X');
 
@@ -207,10 +234,11 @@ namespace ControllerNS
 
 			xAxisTh.join();
 
-			//LogService::Instance()->StopTimer();
+			LogService::Instance()->LogInfo("Finished run " + std::to_string(i));
 
 			previousX = currentPoint.x;
 			previousY = currentPoint.y;
+			//LogService::Instance()->StopTimer();
 		}
 
 		LogService::Instance()->LogInfo("Finished MoveWithVelocity");

@@ -3,7 +3,7 @@
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-project("3dController")
+project("RoMoController")
 
 # Include sub-projects.
-add_subdirectory ("3dController")
+add_subdirectory ("RoMoController")

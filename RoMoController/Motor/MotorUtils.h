@@ -127,6 +127,25 @@ namespace MotorNS {
         }
 
 
+        static void ConvertNumberTo6xUint8Vect(const double inputParam, std::vector<uint8_t>& result)
+        {
+            long long input = static_cast<long long>(inputParam);
+
+            long long b1mask{ 0x0000000000FF };
+            long long b2mask{ 0x00000000FF00 };
+            long long b3mask{ 0x000000FF0000 };
+            long long b4mask{ 0x0000FF000000 };
+            long long b5mask{ 0x00FF00000000 };
+            long long b6mask{ 0xFF0000000000 };
+
+            result.push_back(static_cast<uint8_t>(input & b1mask));
+            result.push_back(static_cast<uint8_t>((input & b2mask) >> 8));
+            result.push_back(static_cast<uint8_t>((input & b3mask) >> 16));
+            result.push_back(static_cast<uint8_t>((input & b4mask) >> 24));
+            result.push_back(static_cast<uint8_t>((input & b5mask) >> 32));
+            result.push_back(static_cast<uint8_t>((input & b6mask) >> 40));
+        }
+
         static void ConvertNumberTo4xUint8Vect(const double input, std::vector<uint8_t>& result)
         {
             ConvertNumberTo4xUint8Vect(static_cast<uint32_t>(input), result);
@@ -249,6 +268,13 @@ namespace MotorNS {
             auto internalVelocity = RPM_ToInternalVelocity(rpm);
             auto comVelocity = InternalVelocityToCommVelocity(internalVelocity);
             MotorUtils::ConvertNumberTo4xUint8Vect(comVelocity, result);
+        }
+
+        /*Returns a 6 byte vector*/
+        static void GetTime_48(const double time, std::vector<uint8_t>& result)
+        {
+            auto timesteps = SecondToTimesteps(time);
+            MotorUtils::ConvertNumberTo6xUint8Vect(timesteps, result);
         }
 
         static void GetTime(const double time, std::vector<uint8_t>& result)

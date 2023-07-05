@@ -28,15 +28,13 @@ int main()
 	std::cout.precision(3);
 
 	GCodeLoader loader{};
-	loader.Load("20mm_cube_0.4n_0.2mm_ABS_MK4_35m.gcode");
-
+	loader.Load("output_0002.ngc");
 
 	std::vector<Point2d> left{};
 	std::vector<Point2d> right{};
-	//loader.ParseFile(left);
-
+	loader.ParseFile(left);
 	/*
-	*/
+
 	PathFinder::GetCubicBezierCurve(
 		Point2d{ 0, 0 },
 		Point2d{ -112, 0 },
@@ -45,6 +43,7 @@ int main()
 		left,
 		100
 	);
+	*/
 
 	PathFinder::GetCubicBezierCurve(
 		Point2d{ 0, 0 },
@@ -52,7 +51,7 @@ int main()
 		Point2d{ 28, 0 },
 		Point2d{ 84, 0 },
 		right,
-		2
+		1
 	);
 
 	/*
@@ -86,11 +85,14 @@ int main()
 	yax.join();
 	*/
 
-	for (int i = 0; i < 10; i++)
+	long long counter = 0;
+	for (int i = 0; i < 1; i++)
 	{
+		LogService::Instance()->LogInfo("Starting cycle " + std::to_string(counter));
 		printer.ExecuteMoveWithVelocity(left, MotorSpeedProfile::Max);
-	 	printer.ExecuteMoveWithVelocity(right, MotorSpeedProfile::Max);
+		printer.ExecuteMoveWithVelocity(right, MotorSpeedProfile::Max);
+		counter++;
 	}
-
 	return 0;
+
 }

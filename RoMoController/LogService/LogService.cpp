@@ -5,15 +5,17 @@
 
 #include "LogService.h"
 #include <fstream>
+#include <filesystem>
 
 namespace LogServiceNS
 {
 	std::mutex LogService::LogMutex{};
+	uint32_t LogService::MaxLogFileSize = 2 * 1024 * 1024;
 
 	LogService::LogService()
 	{
-
-		std::string logFileName{ currentDate() + ".log" };
+		mLogFilePath = currentDate() + ".log";
+		std::string logFileName{ mLogFilePath };
 		mLogFile.open(logFileName, std::ofstream::out | std::ofstream::app);
 	}
 
@@ -27,7 +29,7 @@ namespace LogServiceNS
 
 	std::unique_ptr<LogService>& LogService::Instance()
 	{
-		std::scoped_lock<std::mutex> instanceLock{ LogMutex };
+		std::scoped_lock instanceLock{ LogMutex };
 
 		if (mInstance == nullptr)
 		{
@@ -39,12 +41,12 @@ namespace LogServiceNS
 
 	ErrorCode LogService::LogInfo(std::string text)
 	{
-		std::scoped_lock<std::mutex> instanceLock{ LogMutex };
+		std::scoped_lock instanceLock{ LogMutex };
 
 		if (!mLogFile.is_open())
 			return ErrorCode::LOGFILENOTFOUND;
 
-		std::string log = currentDate() +"|" + currentTime() + "|Info|" + text + '\n';
+		std::string log = currentDate() + "|" + currentTime() + "|Info|" + text + '\n';
 		mLogFile << log;
 
 		mLogFile.flush();
