@@ -1,8 +1,11 @@
-#ifndef POINT
-#define POINT
+#ifndef POINT_2D
+#define POINT_2D
+
+#include "../includes.h"
 
 namespace PathFinderNS
 {
+
 	struct Point2d
 	{
 		double x{};
@@ -94,7 +97,7 @@ namespace PathFinderNS
 		Point2d() = default;
 		~Point2d() = default;
 
-		Point2d(double xParam, double yParam) : x{xParam},y{yParam}
+		Point2d(double xParam, double yParam) : x{ xParam }, y{ yParam }
 		{
 		}
 
@@ -111,6 +114,26 @@ namespace PathFinderNS
 			incoming.x = 0;
 			incoming.y = 0;
 		}
+
+		static double GetDistanceBetweenPoints(Point2d start, Point2d end)
+		{
+			return sqrt(pow(end.x - start.x, 2) + pow(end.y - start.y, 2));
+		}
+
+		/*This method calculates the angle near P1 given the 3 vertices of a triangle*/
+		static double GetAngle(Point2d P1, Point2d P2, Point2d P3)
+		{
+			//calculate each edge of the formed triangle
+			double a = Point2d::GetDistanceBetweenPoints(P1, P2);
+			double b = Point2d::GetDistanceBetweenPoints(P3, P1);
+			double c = Point2d::GetDistanceBetweenPoints(P2, P3);
+
+			//using the law of cosines to find the angle near currentPoint
+			double cosOppositeOfC = (pow(a, 2) + pow(b, 2) - pow(c, 2)) / (2 * a * b);
+
+			//acos gives us the value in radians, conversion needed
+			return MathHelper::ConvertRadiansToDeg(acos(cosOppositeOfC));
+		}
 	};
 }
-#endif // !POINT
+#endif // !POINT_2D

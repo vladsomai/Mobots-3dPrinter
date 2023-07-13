@@ -37,7 +37,7 @@ namespace PathFinderNS
 		const Point2d& end,
 		const Point2d& controlStart,
 		const Point2d& controlEnd,
-		std::vector<Point2d>& pathResult,
+		std::vector<ControllerCommand>& pathResult,
 		int resolution
 	)
 	{
@@ -62,6 +62,90 @@ namespace PathFinderNS
 			Point2d Q = startScaled + controlStartScaled + endScaled + controlEndScaled;
 
 			pathResult.push_back(Q);
+		}
+	}
+
+	void PathFinder::GetArc(
+		const Point2d start,
+		std::optional<double>X,
+		std::optional<double>Y,
+		std::optional<double>I,
+		std::optional<double>J,
+		const bool isCounterClock,
+		std::vector<ControllerCommand>& pathResult,
+		std::optional<double> R,
+		int resolution
+	)
+	{
+		if (I.has_value() && J.has_value() && R.has_value())
+		{
+			//invalid command, we should get IJ or R form, not both
+			return;
+		}
+
+		pathResult.reserve(pathResult.size() + resolution);
+
+		double radius{};
+		Point2d center{};
+		double makeAFullCirce = false;
+		Point2d end{};
+
+		if (I.has_value() && J.has_value())
+		{
+			//IJ form
+			Point2d pij{ I.value(),J.value() };
+			center = Point2d(start.x + pij.x, start.y + pij.y);
+			radius = Point2d::GetDistanceBetweenPoints(center, start);
+		}
+		else if (R.has_value())
+		{
+			//Radius form
+			if (!(X.has_value() && Y.has_value()))
+			{
+				//invalid command, XY must be present
+				return;
+			}
+
+			radius = R.value();
+		}
+		else
+		{
+			//Invalid arguments
+			return;
+		}
+
+		//when IJ are specified and XY are omitted, we will create a full circular motion
+		if (X.has_value() && Y.has_value())
+		{
+			//X and Y are the final destination
+			end = Point2d(X.value(), Y.value());
+		}
+
+		Point2d currentPoint = start;
+
+		double totalAngle = Point2d::GetAngle(center, start, end);
+		double distCenterEnd = Point2d::GetDistanceBetweenPoints(center, end);
+		double distCenterSt = Point2d::GetDistanceBetweenPoints(center, start);
+		const double circleDegStep = static_cast<double>(totalAngle) / 25;
+
+		for (double i = 0; i < totalAngle; i += circleDegStep)
+		{
+			double angleRadians = MathHelper::ConvertDegToRadians(circleDegStep);
+			double x{}, y{};
+
+			if (isCounterClock)
+			{
+				x = (cos(angleRadians) * (currentPoint.x - center.x) + (-1 * sin(angleRadians) * (currentPoint.y - center.y))) + center.x;
+				y = (sin(angleRadians) * (currentPoint.x - center.x) + (cos(angleRadians) * (currentPoint.y - center.y))) + center.y;
+			}
+			else
+			{
+				x = (cos(angleRadians) * (currentPoint.x - center.x) + (sin(angleRadians) * (currentPoint.y - center.y))) + center.x;
+				y = (-1 * sin(angleRadians) * (currentPoint.x - center.x) + (cos(angleRadians) * (currentPoint.y - center.y))) + center.y;
+			}
+
+			currentPoint = Point2d(x, y);
+			pathResult.push_back(ControllerCommand(currentPoint));
 		}
 	}
 }

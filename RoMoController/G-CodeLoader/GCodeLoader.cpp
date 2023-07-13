@@ -1,4 +1,6 @@
 #include "GCodeLoader.h"
+#include <optional>
+
 
 namespace GCodeLoaderNS
 {
@@ -23,7 +25,7 @@ namespace GCodeLoaderNS
 		return ErrorCode::NO_ERR;
 	}
 
-	ErrorCode GCodeLoader::ParseFile(std::vector<Point2d>& points)
+	ErrorCode GCodeLoader::ParseFile(std::vector<ControllerCommand>& commands)
 	{
 		std::vector<std::string> keys {};
 		auto fileLength = mGCodeCommands.size();
@@ -42,19 +44,27 @@ namespace GCodeLoaderNS
 			Point2d point{};
 
 			if (command == "G01" ||
-				command == "G1" || 
-				command == "G0"||
+				command == "G1" ||
+				command == "G0" ||
 				command == "G00")
 			{
-				double z{};
-				double f{};
-				res = ConvertG01(keys, point, z, f);
-				points.push_back(point);
+				std::optional<double> z{ std::nullopt };
+				std::optional<double> f{ std::nullopt };
+				res = ConvertG00_01(keys, point, z, f);
+				ControllerCommand cmd{ point, z, f };
+				commands.push_back(cmd);
+			}
+			else if (command == "G02" ||
+				command == "G2" ||
+				command == "G03" ||
+				command == "G3")
+			{
+				res = ConvertG02_03(keys, commands);
 			}
 			else if (command == "G05" ||
 				command == "G5")
 			{
-				res = ConvertG05(keys, points);
+				res = ConvertG05(keys, commands);
 			}
 
 			if (res != ErrorCode::NO_ERR)
@@ -99,11 +109,11 @@ namespace GCodeLoaderNS
 		return ErrorCode::NO_ERR;
 	}
 
-	ErrorCode GCodeLoader::ConvertG01(
+	ErrorCode GCodeLoader::ConvertG00_01(
 		std::vector<std::string>& keys, 
 		Point2d& point, 
-		double& z,
-		double& f)
+		std::optional<double>& z,
+		std::optional<double>& f)
 	{
 		if (keys.at(0) != "G01" && 
 			keys.at(0) != "G00" &&
@@ -164,9 +174,99 @@ namespace GCodeLoaderNS
 		return ErrorCode::NO_ERR;
 	}
 
+	ErrorCode GCodeLoader::ConvertG02_03(
+		std::vector<std::string>& keys,
+		std::vector<ControllerCommand>& points
+	)
+	{
+		auto numberOfKeys = keys.size();
+
+		double E{};//extrude
+		double F{};//feed rate
+		double S{};//laser power
+		double P{};//count, no. of complete circles
+		std::optional<double> R = std::nullopt;//radius
+		double Z{};//z position
+
+		std::optional<double> X = std::nullopt;
+		std::optional<double> Y = std::nullopt;
+
+		std::optional<double> I = std::nullopt;
+		std::optional<double> J = std::nullopt;
+		bool isCounterClock = false;
+
+		/*Start from 1, the 0 index is the GXX text*/
+		for (size_t i = 0; i < numberOfKeys; i++)
+		{
+			auto key = keys.at(i);
+			auto keyType = key.at(0);
+
+			double value = std::stod(key.substr(1, key.size() - 1));
+
+
+			if (key == "G03" ||
+				key == "G3")
+			{
+				isCounterClock = true;
+			}
+			else if (keyType == 'E')
+			{
+				//Currently ignored
+				E = value;
+			}
+			else if (keyType == 'F')
+			{
+				//Currently ignored
+				F = value;
+			}
+			else if (keyType == 'S')
+			{
+				//Currently ignored
+				S = value;
+			}
+			else if (keyType == 'I')
+			{
+				I = value;
+			}
+			else if (keyType == 'J')
+			{
+				J = value;
+			}
+			else if (keyType == 'P')
+			{
+				P = value;
+			}
+			else if (keyType == 'R')
+			{
+				R = value;
+			}
+			else if (keyType == 'X')
+			{
+				X = value;
+			}
+			else if (keyType == 'Y')
+			{
+				Y = value;
+			}
+			else if (keyType == 'Z')
+			{
+				Z = value;
+			}
+		}
+
+		PathFinder::GetArc(mPreviousPoint, X, Y, I, J, isCounterClock, points, R, 100);
+
+		if (X.has_value() && Y.has_value())
+		{
+			mPreviousPoint = Point2d(X.value(), Y.value());
+		}
+
+		return ErrorCode::NO_ERR;
+	}
+
 	ErrorCode GCodeLoader::ConvertG05(
 		std::vector<std::string>& keys,
-		std::vector<Point2d>& points
+		std::vector<ControllerCommand>& points
 	)
 	{
 		if (keys.at(0) != "G05" &&
@@ -177,13 +277,13 @@ namespace GCodeLoaderNS
 		}
 
 		auto numberOfKeys = keys.size();
-
 		double E{};
 		double F{};
 		double S{};
 		Point2d pointXY{};
 		Point2d pointIJ{};
 		Point2d pointPQ{};
+
 
 		/*Start from 1, the 0 index is the GXX text*/
 		for (size_t i = 1; i < numberOfKeys; i++)
@@ -234,12 +334,14 @@ namespace GCodeLoaderNS
 				pointXY.y = value;
 			}
 		}
+		
 
 		Point2d temp{};
 
 		if (pointIJ == temp)
 		{
 			//the pointIJ was not set, use the first control point as the current location
+			//this will create a quadratic bezier curve
 			pointIJ = mPreviousPoint;
 		}
 

@@ -2,4 +2,5 @@
 
 add_library (Controller 
 "Controller.cpp" 
-"Controller.h")
+"Controller.h"
+ControllerCommand.h "ControllerCommand.cpp")

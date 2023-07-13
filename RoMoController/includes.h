@@ -15,6 +15,10 @@
 #include <filesystem>
 
 #include "MathHelper.h"
+using MathHelperNS::MathHelper;
+
+#include "PathFinder/Point2d.h"
+
 #include "ErrorCodes.h"
 
 using ByteList = std::vector<uint8_t>;
@@ -26,7 +30,5 @@ using ByteList = std::vector<uint8_t>;
 //MAC or Linux
 #include<unistd.h>
 #endif
-
-
  
 #endif // INCLUDES

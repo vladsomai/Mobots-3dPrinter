@@ -7,6 +7,7 @@
 #include "../PathFinder/PathFinder.h"
 #include "../LogService/LogService.h"
 #include "../Motor/MotorUtils.h"
+#include "ControllerCommand.h"
 
 namespace ControllerNS
 {
@@ -30,8 +31,9 @@ namespace ControllerNS
 			uint8_t axis = 255);
 
 		ErrorCode AbsoluteMove(double distance, MotorSpeedProfile speedProfile, uint8_t axis);
+		ErrorCode AbsoluteMoveRotation(double rotation, double rpm, uint8_t axis);
 
-		ErrorCode ExecuteMoveWithVelocity(std::vector<Point2d>& path, MotorSpeedProfile speedProfile = MotorSpeedProfile::Medium);
+		ErrorCode ExecuteMoveWithVelocity(std::vector<ControllerCommand>& path);
 		ErrorCode ExecuteBezierPath(std::vector<Point2d>& path);
 
 		/*Sets the distance a particular axis will travel in one full rotation*/
@@ -39,6 +41,7 @@ namespace ControllerNS
 
 		/*Gets the distance particular axis will travel in one full rotation*/
 		double GetDistancePerRotation(uint8_t axis);
+
 		void InsertZeroMove(double time);
 	};
 }

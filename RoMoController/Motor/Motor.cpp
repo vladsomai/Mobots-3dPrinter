@@ -43,7 +43,7 @@ namespace MotorNS
 
                 ByteList result{};
                 TimeSync(timeBytes, result);
-                sleep_for(milliseconds(970));
+                sleep_for(milliseconds(97));
             }
         }
     }
@@ -149,7 +149,7 @@ namespace MotorNS
             LogService::Instance()->LogInfo("Max velocity set to " + std::to_string(maxVelocity));
         }
 
-        //TimeTh = std::thread(&Motor::TimeThread, this);
+        TimeTh = std::thread(&Motor::TimeThread, this);
 
         if (res == ErrorCode::NO_ERR)
         {
@@ -453,6 +453,24 @@ namespace MotorNS
     double Motor::GetDistancePerRotation()
     {
         return mDistancePerRotation;
+    }
+
+    ErrorCode Motor::AbsoluteMoveRotation(double rotations, double rpm)
+    {
+        auto speedRatio = MotorUtils::SpeedProfiles.at(MotorSpeedProfile::Medium) / rpm;
+        auto timeForMove = rotations * speedRatio;
+
+        LogService::Instance()->LogInfo("Rotation: " + std::to_string(rotations) + " Time:" + std::to_string(timeForMove));
+
+        ByteList cmdParams{};
+        MotorUtils::GetPositionAndTime(
+            rotations,
+            timeForMove,
+            cmdParams);
+
+        ByteList result{};
+
+        return TrapezoidMove(cmdParams, result);
     }
 
     ErrorCode Motor::AbsoluteMove(double distance, MotorSpeedProfile speedProfile)

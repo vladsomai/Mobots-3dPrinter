@@ -58,6 +58,8 @@ namespace MotorNS
         
         ErrorCode AbsoluteMove(double distance, MotorSpeedProfile speedProfile);
 
+        ErrorCode AbsoluteMoveRotation(double rotations, double rpm);
+
         ErrorCode BlockUntilQueueSize(uint32_t timeToBlockBetweenPoll, size_t blockUntilQueueSizeLess);
 
         ErrorCode AddMoveCommandToQueue(
