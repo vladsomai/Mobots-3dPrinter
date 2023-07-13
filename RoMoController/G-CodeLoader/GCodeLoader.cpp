@@ -11,7 +11,10 @@ namespace GCodeLoaderNS
 		std::ifstream MyReadFile(filePath);
 
 		if (!MyReadFile.is_open())
+		{
+			LogService::Instance()->LogInfo("GCode file not found!");
 			return ErrorCode::GCODEFILENOTFOUND;
+		}
 
 		std::string gCodeCmd{};
 
@@ -41,7 +44,7 @@ namespace GCodeLoaderNS
 
 			auto command = keys.at(0);
 
-			Point2d point{};
+			std::optional<Point2d> point{};
 
 			if (command == "G01" ||
 				command == "G1" ||
@@ -111,7 +114,7 @@ namespace GCodeLoaderNS
 
 	ErrorCode GCodeLoader::ConvertG00_01(
 		std::vector<std::string>& keys, 
-		Point2d& point, 
+		std::optional<Point2d>& point, 
 		std::optional<double>& z,
 		std::optional<double>& f)
 	{
@@ -121,6 +124,7 @@ namespace GCodeLoaderNS
 			keys.at(0) != "G0")
 		{
 			/*Calling method failed to distinguish, return immediately*/
+			LogService::Instance()->LogInfo("Called ConvertG00_01 but the first key is not one of the following: G01 / G00 / G1 / G0");
 			return ErrorCode::GCODEINVALID;
 		}
 
@@ -129,12 +133,15 @@ namespace GCodeLoaderNS
 
 		auto numberOfKeys = keys.size();
 
+		std::optional<double> x{};
+		std::optional<double> y{};
+
 		/*Start from 1, the 0 index is the GXX text*/
 		for (size_t i = 1; i < numberOfKeys; i++)
 		{
 			auto key = keys.at(i);
 			auto keyType = key.at(0);
-			
+
 			/*Inline comment*/
 			if (keyType == ';')
 				break;
@@ -157,19 +164,36 @@ namespace GCodeLoaderNS
 			}
 			else if (keyType == 'X')
 			{
-				point.x = value;
+				x = value;
 			}
 			else if (keyType == 'Y')
 			{
-				point.y = value;
+				y = value;
 			}
 			else if (keyType == 'Z')
 			{
-				z = value;
+				//temporary solution to only move z as an absolute value from gcode
+				if (value != mPreviousZ)
+				{
+					z = value;
+					mPreviousZ = value;
+				}
 			}
 		}
 
-		mPreviousPoint = point;
+
+		if (x.has_value() && y.has_value())
+		{
+			point = Point2d(x.value(), y.value());
+			mPreviousPoint = point.value();
+		}
+		else
+		{
+			//we must receive both x and y values
+			LogService::Instance()->LogInfo("Invalid GCode detected, did not receive both X and Y values!");
+			return ErrorCode::GCODEINVALID;
+		}
+
 
 		return ErrorCode::NO_ERR;
 	}
@@ -250,7 +274,11 @@ namespace GCodeLoaderNS
 			}
 			else if (keyType == 'Z')
 			{
-				Z = value;
+				if (value != mPreviousZ)
+				{
+					Z = value;
+					mPreviousZ = value;
+				}
 			}
 		}
 
@@ -273,6 +301,8 @@ namespace GCodeLoaderNS
 			keys.at(0) != "G5")
 		{
 			/*Calling method failed to distinguish, return immediately*/
+			LogService::Instance()->LogInfo("Called ConvertG05 but the first key is not G05 or G5");
+
 			return ErrorCode::GCODEINVALID;
 		}
 

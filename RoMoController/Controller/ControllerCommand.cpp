@@ -2,18 +2,13 @@
 
 namespace ControllerNS
 {
-	std::optional<double> ControllerCommand::cachedVelocity = std::nullopt;
-
-	ControllerCommand::ControllerCommand(Point2d xyPlaneParam,
+	ControllerCommand::ControllerCommand(
+		std::optional<Point2d> xyPlaneParam,
 		std::optional<double>zParam,
 		std::optional<double>velocityParam)
 	{
 		xyPlane = xyPlaneParam;
-
-		if (zParam.has_value())
-		{
-			z = zParam.value();
-		}
+		z = zParam;
 
 		if (velocityParam.has_value())
 		{
@@ -24,14 +19,7 @@ namespace ControllerNS
 		}
 		else
 		{
-			if (cachedVelocity.has_value())
-			{
-				velocity = cachedVelocity.value();
-			}
-			else
-			{
-				velocity = defaultVelocity;
-			}
+			velocity = cachedVelocity.value();
 		}
 
 	}

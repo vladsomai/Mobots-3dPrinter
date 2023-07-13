@@ -22,13 +22,14 @@ int main()
 {
 	if (SerialPort::Instance()->Connect(std::string("COM5")) != ErrorCode::NO_ERR)
 	{
-		std::cout << "Cannot connect to serial port" << std::endl;
+		LogService::Instance()->LogInfo("Cannot connect to serial port");
 		return -1;
 	}
+
 	std::cout.precision(3);
 
 	GCodeLoader loader{};
-	loader.Load("U.ngc");
+	loader.Load("gcode.ngc");
 
 	std::vector<ControllerCommand> commands{};
 

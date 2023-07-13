@@ -20,6 +20,7 @@ namespace GCodeLoaderNS
 
 		/*Will be needed in case a G05 is used*/
 		Point2d mPreviousPoint{};
+		double mPreviousZ{};
 
 	public:
 		ErrorCode Load(std::string filePath);
@@ -38,7 +39,7 @@ namespace GCodeLoaderNS
 		*/
 		ErrorCode ConvertG00_01(
 			std::vector<std::string>& keys,
-			Point2d& point,
+			std::optional<Point2d>& point,
 			std::optional<double>& z,
 			std::optional<double>& f
 		);

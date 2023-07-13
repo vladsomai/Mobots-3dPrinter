@@ -149,7 +149,7 @@ namespace MotorNS
             LogService::Instance()->LogInfo("Max velocity set to " + std::to_string(maxVelocity));
         }
 
-        TimeTh = std::thread(&Motor::TimeThread, this);
+        //TimeTh = std::thread(&Motor::TimeThread, this);
 
         if (res == ErrorCode::NO_ERR)
         {
@@ -447,6 +447,7 @@ namespace MotorNS
 
     void Motor::SetDistancePerRotation(double distance)
     {
+        LogService::Instance()->LogInfo("Setting distance per rotation for axis " + mAxisName + " to " + std::to_string(distance));
         mDistancePerRotation = distance;
     }
 
@@ -459,8 +460,8 @@ namespace MotorNS
     {
         auto speedRatio = MotorUtils::SpeedProfiles.at(MotorSpeedProfile::Medium) / rpm;
         auto timeForMove = rotations * speedRatio;
-
-        LogService::Instance()->LogInfo("Rotation: " + std::to_string(rotations) + " Time:" + std::to_string(timeForMove));
+        
+        LogService::Instance()->LogInfo("AbsoluteMoveRotation: " + std::to_string(rotations) + "rev, Time:" + std::to_string(timeForMove));
 
         ByteList cmdParams{};
         MotorUtils::GetPositionAndTime(
@@ -475,9 +476,12 @@ namespace MotorNS
 
     ErrorCode Motor::AbsoluteMove(double distance, MotorSpeedProfile speedProfile)
     {
+
         auto speedRatio = MotorUtils::SpeedProfiles.at(speedProfile) / MotorUtils::SpeedProfiles.at(MotorSpeedProfile::Medium);
         auto distanceTraveledWithCurrentSpeedInOneSecond = mDistancePerRotation * speedRatio;
         auto timeForMove = distance / distanceTraveledWithCurrentSpeedInOneSecond;
+
+        LogService::Instance()->LogInfo("AbsoluteMove: " + std::to_string(distance) + "mm, Time:" + std::to_string(timeForMove));
 
         ByteList cmdParams{};
         MotorUtils::GetPositionAndTime(

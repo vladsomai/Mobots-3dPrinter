@@ -10,20 +10,20 @@ namespace ControllerNS
 	using MotorNS::MotorSpeedProfile;
 	using MotorNS::MotorUtils;
 
-
 	struct ControllerCommand
 	{
-		Point2d xyPlane{};
-		double z{};
+		std::optional<Point2d> xyPlane{ std::nullopt };
+		std::optional<double> z{ std::nullopt };
 		double velocity{ defaultVelocity };
 
-		ControllerCommand(Point2d xyPlaneParam, 
-			std::optional<double>zParam = std::nullopt, 
+		ControllerCommand(
+			std::optional<Point2d> xyPlaneParam = std::nullopt,
+			std::optional<double>zParam = std::nullopt,
 			std::optional<double>velocityParam = std::nullopt);
 
 	private:
-		static std::optional<double> cachedVelocity;
 		static const inline double defaultVelocity{ MotorUtils::SpeedProfiles.at(MotorSpeedProfile::Medium) };
+		static inline std::optional<double> cachedVelocity{ defaultVelocity };
 	};
 }
 

@@ -59,8 +59,8 @@ namespace PathFinderNS
 			Point2d controlEndScaled = controlEnd * controlEndScalar;
 
 
-			Point2d Q = startScaled + controlStartScaled + endScaled + controlEndScaled;
-
+			Point2d pQ = startScaled + controlStartScaled + endScaled + controlEndScaled;
+			std::optional<Point2d> Q = pQ;
 			pathResult.push_back(Q);
 		}
 	}
