@@ -29,7 +29,10 @@ int main()
 	std::cout.precision(3);
 
 	GCodeLoader loader{};
-	loader.Load("gcode.ngc");
+	if (loader.Load("gcode.ngc") != ErrorCode::NO_ERR)
+	{
+		return -1;
+	}
 
 	std::vector<ControllerCommand> commands{};
 
