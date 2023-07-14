@@ -80,7 +80,7 @@ namespace PathFinderNS
         {
             // invalid command, we should get IJ or R form, not both
             LogService::Instance()->LogInfo("Arc command received but "
-                                            " both radius and ij form were detected.");
+                                            "both radius and ij form were detected.");
             return;
         }
 
@@ -115,7 +115,7 @@ namespace PathFinderNS
         {
             // Invalid arguments
             LogService::Instance()->LogInfo("Arc command received but "
-                                            " the radius or ij form was not detected.");
+                                            "the radius or ij form was not detected.");
             return;
         }
 
@@ -129,7 +129,7 @@ namespace PathFinderNS
         Point2d currentPoint = start;
 
         double totalAngle = Point2d::GetAngle(center, start, end);
-        const double circleDegStep = static_cast<double>(totalAngle) / 25;
+        const double circleDegStep = static_cast<double>(totalAngle) / 20;
 
         for (double i = 0; i < totalAngle; i += circleDegStep)
         {
