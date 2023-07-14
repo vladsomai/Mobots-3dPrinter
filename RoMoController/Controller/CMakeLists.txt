@@ -5,4 +5,5 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 add_library (Controller 
 "Controller.cpp" 
 "Controller.h"
-ControllerCommand.h "ControllerCommand.cpp")
+"ControllerCommand.h" 
+"ControllerCommand.cpp")

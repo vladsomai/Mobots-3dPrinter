@@ -194,9 +194,9 @@ namespace MotorNS {
             return microsteps / 645120;
         }
 
-        static double RotationsToMicrosteps(const double rotations)
+        static int32_t RotationsToMicrosteps(const double rotations)
         {
-            return rotations * 645120;
+            return static_cast<int32_t>(rotations * 645120);
         }
 
         static constexpr double minimumNegativePosition = -0.0000032;
@@ -327,7 +327,7 @@ namespace MotorNS {
 
             size_t movesSize = moves.size();
 
-            uint8_t cmdLength = 5 + (8 * movesSize);
+            uint8_t cmdLength = static_cast<uint8_t>(5 + (8 * movesSize));
 
             uint32_t moveTypes = 0;
 
