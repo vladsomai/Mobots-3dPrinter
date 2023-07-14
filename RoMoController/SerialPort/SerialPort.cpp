@@ -125,7 +125,7 @@ namespace SerialPortNS
 				readSize,
 				mPort);
 
-			for (int i = 0; i < readSize; i++)
+			for (size_t i = 0; i < readSize; i++)
 			{
 				result.push_back(buffer[i]);
 			}

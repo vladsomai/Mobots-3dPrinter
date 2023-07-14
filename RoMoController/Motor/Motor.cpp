@@ -202,7 +202,6 @@ namespace MotorNS
     }
 
     ErrorCode Motor::AddMoveCommandToQueue(
-        Commands command,
         const std::vector<uint8_t>& params)
     {
         mMoveCommands.push(params);

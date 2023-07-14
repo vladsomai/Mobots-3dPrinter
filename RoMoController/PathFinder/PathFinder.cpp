@@ -88,7 +88,6 @@ namespace PathFinderNS
 
         double radius{};
         Point2d center{};
-        double makeAFullCirce = false;
         Point2d end{};
 
         if (I.has_value() && J.has_value())
@@ -130,8 +129,6 @@ namespace PathFinderNS
         Point2d currentPoint = start;
 
         double totalAngle = Point2d::GetAngle(center, start, end);
-        double distCenterEnd = Point2d::GetDistanceBetweenPoints(center, end);
-        double distCenterSt = Point2d::GetDistanceBetweenPoints(center, start);
         const double circleDegStep = static_cast<double>(totalAngle) / 25;
 
         for (double i = 0; i < totalAngle; i += circleDegStep)

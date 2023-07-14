@@ -99,10 +99,8 @@ namespace ControllerNS
         // Make sure we start all the axes at the same time
         //InsertZeroMove(1);
 
-        size_t queueSize{};
-
         const auto pSize = path.size();
-        for (int i = 0; i < pSize; i++)
+        for (size_t i = 0; i < pSize; i++)
         {
             LogService::Instance()->LogInfo("Starting run " + std::to_string(i));
 
@@ -282,7 +280,7 @@ namespace ControllerNS
         double previousY = 0;
 
         auto pSize = path.size();
-        for (int i = 0; i <= pSize; i++)
+        for (size_t i = 0; i <= pSize; i++)
         {
             mAxes['X']->BlockUntilQueueSize(1, 1);
             mAxes['Y']->BlockUntilQueueSize(1, 1);

@@ -63,7 +63,6 @@ namespace MotorNS
         ErrorCode BlockUntilQueueSize(uint32_t timeToBlockBetweenPoll, size_t blockUntilQueueSizeLess);
 
         ErrorCode AddMoveCommandToQueue(
-            Commands command,
             const std::vector<uint8_t>& params);
 
         ErrorCode DisableMOSFETs(std::vector<uint8_t>& result);
