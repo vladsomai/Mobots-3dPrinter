@@ -13,6 +13,8 @@
 #include <queue>
 #include <fstream>
 #include <filesystem>
+#include <atomic>
+#include <algorithm>
 
 #include "MathHelper.h"
 using MathHelperNS::MathHelper;
