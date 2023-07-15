@@ -20,7 +20,7 @@ add_subdirectory ("LogService")
 
 set(SourceLibs "Motor" "LogService" "PathFinder" "GCodeLoader" "MoveQueue" "SerialPort" "Controller")
 
-
+target_link_options(${PROJECT_NAME} PUBLIC -std=c++17 -pthread)
 target_link_libraries(${PROJECT_NAME} 
 "$<LINK_GROUP:RESCAN,${SourceLibs}>"
 )
