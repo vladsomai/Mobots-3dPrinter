@@ -18,11 +18,9 @@ add_subdirectory ("MoveQueue")
 add_subdirectory ("G-CodeLoader")
 add_subdirectory ("LogService")
 
+set(SourceLibs "Motor" "LogService" "PathFinder" "GCodeLoader" "MoveQueue" "SerialPort" "Controller")
+
+
 target_link_libraries(${PROJECT_NAME} 
-Motor 
-Controller 
-PathFinder 
-SerialPort 
-MoveQueue 
-GCodeLoader 
-LogService)
+"$<LINK_GROUP:RESCAN,${SourceLibs}>"
+)
