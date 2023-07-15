@@ -1,6 +1,7 @@
 ﻿{
   "configurations": [
     {
+      "cmakeExecutable": "C:\\Program Files\\CMake\\bin\\",
       "name": "x64-Debug",
       "generator": "Ninja",
       "configurationType": "Debug",

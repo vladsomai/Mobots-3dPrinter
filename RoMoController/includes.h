@@ -15,6 +15,7 @@
 #include <filesystem>
 #include <atomic>
 #include <algorithm>
+#include <memory>
 
 #include "MathHelper.h"
 using MathHelperNS::MathHelper;
