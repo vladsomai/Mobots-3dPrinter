@@ -81,7 +81,7 @@ namespace SerialPortNS
 
 #else
 		//MAC or Linux
-		std::string COM_PATH{ "/dev/tty" };
+		std::string COM_PATH{ "" };
 
 		COM_PATH.append(COM_PORT);
 
