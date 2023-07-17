@@ -6,6 +6,8 @@ enum class ErrorCode {
 
 	/*File reader*/
 	LOGFILENOTFOUND,
+	CONFIGFILENOTFOUND,
+	COMMENT,
 
 	/*Serial port*/
 	INVALID_PORT,
@@ -17,7 +19,6 @@ enum class ErrorCode {
 
 	/*GCode*/
 	GCODEFILENOTFOUND,
-	GCODECOMMENT,
 	GCODEINVALID
 
 };

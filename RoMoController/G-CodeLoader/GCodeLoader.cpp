@@ -12,7 +12,7 @@ namespace GCodeLoaderNS
         if (!MyReadFile.is_open())
         {
             LogService::Instance()->LogInfo("GCode file not found, "
-                                            "please add you gcode file in the same directory as the executable!");
+                                            "please add your gcode file in the same directory as the executable!");
             return ErrorCode::GCODEFILENOTFOUND;
         }
 
@@ -37,7 +37,7 @@ namespace GCodeLoaderNS
         {
             keys.clear();
             auto res = ParseLine(i, keys);
-            if (res == ErrorCode::GCODECOMMENT)
+            if (res == ErrorCode::COMMENT)
             {
                 continue;
             }
@@ -88,7 +88,7 @@ namespace GCodeLoaderNS
 
         /*Comment line has it first char a semicolon*/
         if (!gSize || gCommand.at(0) == ';')
-            return ErrorCode::GCODECOMMENT;
+            return ErrorCode::COMMENT;
 
         std::string toBeParsed = gCommand;
         size_t current = 0;

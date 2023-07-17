@@ -17,9 +17,10 @@ add_subdirectory ("PathFinder")
 add_subdirectory ("SerialPort")
 add_subdirectory ("MoveQueue")
 add_subdirectory ("G-CodeLoader")
+add_subdirectory ("ConfigParser")
 add_subdirectory ("LogService")
 
-set(SourceLibs "Motor" "LogService" "PathFinder" "GCodeLoader" "MoveQueue" "SerialPort" "Controller")
+set(SourceLibs "Motor" "LogService" "PathFinder" "GCodeLoader" "MoveQueue" "SerialPort" "Controller" "ConfigParser")
 
 IF(WIN32)
 target_link_libraries(${PROJECT_NAME} ${SourceLibs})

@@ -7,20 +7,30 @@
 #include "Motor/MotorUtils.h"
 #include "SerialPort/SerialPort.h"
 #include "LogService/LogService.h"
+#include "ConfigParser/ConfigParser.h"
+#include "./ConfigParser/ConfigParameters.h"
 
 using namespace MotorNS;
 using namespace LogServiceNS;
-
 using namespace SerialPortNS;
 using namespace GCodeLoaderNS;
 using namespace LogServiceNS;
 using namespace PathFinderNS;
-
 using namespace ControllerNS;
+using namespace ConfigParserNS;
 
 int main()
 {
-	if (SerialPort::Instance()->Connect(std::string("COM5")) != ErrorCode::NO_ERR)
+	ConfigParser cfg{};
+	if (cfg.Load("config.ini") != ErrorCode::NO_ERR)
+	{
+		return -1;
+	}
+
+	auto configParameters = cfg.GetConfigProps();
+
+
+	if (SerialPort::Instance()->Connect(configParameters[CFG_SERIAL_PORT]) != ErrorCode::NO_ERR)
 	{
 		LogService::Instance()->LogInfo("Cannot connect to serial port");
 		return -1;
@@ -29,7 +39,7 @@ int main()
 	std::cout.precision(3);
 
 	GCodeLoader loader{};
-	if (loader.Load("gcode.ngc") != ErrorCode::NO_ERR)
+	if (loader.Load(configParameters[CFG_GCODE_FILE_NAME]) != ErrorCode::NO_ERR)
 	{
 		return -1;
 	}
