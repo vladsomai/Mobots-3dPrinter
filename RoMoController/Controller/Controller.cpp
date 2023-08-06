@@ -1,6 +1,5 @@
 ﻿#include "Controller.h"
 
-
 namespace ControllerNS
 {
     using namespace MotorNS;
@@ -20,6 +19,8 @@ namespace ControllerNS
         for (const auto &axis : axes)
         {
             mAxes[axis] = std::make_unique<Motor>(axis);
+
+            mAxes[axis]->Ping();
 
             /*Shall be set by the user when calibrating*/
             mAxes[axis]->SetDistancePerRotation(28.0);

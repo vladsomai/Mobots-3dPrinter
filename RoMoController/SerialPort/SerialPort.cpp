@@ -92,7 +92,8 @@ namespace SerialPortNS
 			LogService::Instance()->LogInfo("Port " + COM_PORT + " is now open.");
 			return ErrorCode::NO_ERR;
 		}
-		else {
+		else 
+		{
 			LogService::Instance()->LogInfo("Port " + COM_PORT + " is invalid.");
 			return ErrorCode::INVALID_PORT;
 		}
@@ -115,8 +116,11 @@ namespace SerialPortNS
 
 		Send(command);
 
+
 		if (command[0] != 255)
 		{
+			/*Only expect an answer when we send the command to a single axis
+			 *255 means 'all axes' */
 			uint8_t buffer[255]{ 0 };
 			size_t readSize = MotorUtils::GetRcvCommandSize(command[1]);
 

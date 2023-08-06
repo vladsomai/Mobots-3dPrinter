@@ -29,7 +29,6 @@ int main()
 
 	auto configParameters = cfg.GetConfigProps();
 
-
 	if (SerialPort::Instance()->Connect(configParameters[CFG_SERIAL_PORT]) != ErrorCode::NO_ERR)
 	{
 		LogService::Instance()->LogInfo("Cannot connect to serial port");
@@ -59,5 +58,4 @@ int main()
 		counter++;
 	}
 	return 0;
-
 }

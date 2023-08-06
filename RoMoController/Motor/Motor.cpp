@@ -194,9 +194,9 @@ namespace MotorNS
         if (command.size() == 0)
             return ErrorCode::NO_ERR;
 
-        //LogService::Instance()->StartTimer();
+        LogService::Instance()->StartTimer();
         auto res = SerialPort::Instance()->SendAndWaitForReply(command, result);
-        //LogService::Instance()->StopTimer();
+        LogService::Instance()->StopTimer();
 
         return res;
     }
@@ -427,8 +427,25 @@ namespace MotorNS
         return ErrorCode::NOT_IMPLEMENTED;
     }
 
-    ErrorCode Motor::Ping() {
-        return ErrorCode::NOT_IMPLEMENTED;
+    ErrorCode Motor::Ping()
+    {
+        std::vector<uint8_t> result{};
+        std::vector<uint8_t> command{ mAxis, static_cast<uint8_t>(Commands::Ping), 0xA,  0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 };
+        LogService::Instance()->LogInfo("Pinging axis " + mAxisName + "..");
+        auto res = Execute(command, result);
+        if (res != ErrorCode::NO_ERR)
+        {
+            LogService::Instance()->LogInfo("Pinging axis " + mAxisName + " failed");
+        }
+
+        std::string resultStr{};
+        for (const auto& byte : result)
+        {
+            resultStr += std::to_string(byte);
+        }
+        LogService::Instance()->LogInfo("Axis " + mAxisName + " responded to ping: " + resultStr);
+
+        return res;
     }
 
     ErrorCode Motor::ControlHallSensorStatistics() {
