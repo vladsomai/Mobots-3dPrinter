@@ -94,12 +94,14 @@ namespace SerialPortNS
 		COM_PATH.append(COM_PORT);
 
 		/*Just open and configure the serial port using posix calls*/
-		int fd = open(COM_PORT, O_RDWR | O_NDELAY | O_NOCTTY);
+		int fd = open(COM_PORT.c_str(), O_RDWR | O_NDELAY | O_NOCTTY);
 		if (fd < 0) 
 		{
 			LogService::Instance()->LogInfo("Port " + COM_PORT + " is invalid.");
 			return ErrorCode::INVALID_PORT;
 		}
+		
+		struct termios options; /* Serial ports setting */
 
 		/* Set up serial port */
 		options.c_cflag = B230400 | CS8 | CLOCAL | CREAD;
