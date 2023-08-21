@@ -194,9 +194,7 @@ namespace MotorNS
         if (command.size() == 0)
             return ErrorCode::NO_ERR;
 
-        LogService::Instance()->StartTimer();
         auto res = SerialPort::Instance()->SendAndWaitForReply(command, result);
-        LogService::Instance()->StopTimer();
 
         return res;
     }

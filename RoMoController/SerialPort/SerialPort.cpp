@@ -39,12 +39,25 @@ namespace SerialPortNS
 
 		auto cmdSize = command.size();
 
-		fwrite(command.data(),
+		size_t result = fwrite(command.data(),
 			sizeof(uint8_t),
 			cmdSize,
 			mPort);
+		
+		if (ferror(mPort) ||
+			result != cmdSize)
+		{
+			LogService::Instance()->LogInfo("Error writing on the serial port.");
+			clearerr(mPort);
 
-		fflush(mPort);
+			return ErrorCode::PORT_WRITE_ERROR;
+		}
+
+		if (fflush(mPort))
+		{
+			LogService::Instance()->LogInfo("Error flushing the serial port.");
+			return ErrorCode::PORT_WRITE_ERROR;
+		}
 
 		return ErrorCode::NO_ERR;
 	}
@@ -68,36 +81,25 @@ namespace SerialPortNS
 		if (mPort != NULL)
 		{
 			/*Close the current port and continue opening a new one */
-			fclose(mPort);
+			if (fclose(mPort))
+			{
+				LogService::Instance()->LogInfo("ERROR: Serial Port is already open and it could not be closed!");
+				return ErrorCode::INVALID_PARAMETERS;
+			}
 		}
 
-#ifdef _WIN32
-		std::string WIN_COM_PATH{ "\\\\.\\" };
-
-		WIN_COM_PATH.append(COM_PORT);
-
-		mPort = fopen(WIN_COM_PATH.c_str(), "rb+");
-
-		if (mPort != NULL)
-		{
-			LogService::Instance()->LogInfo("Port " + COM_PORT + " is now open.");
-			return ErrorCode::NO_ERR;
-		}
-		else 
-		{
-			LogService::Instance()->LogInfo("Port " + COM_PORT+" is invalid.");
-			return ErrorCode::INVALID_PORT;
-		}
-#else
 		std::string COM_PATH{ "" };
 
-		COM_PATH.append(COM_PORT);
-
-		/*Just open and configure the serial port using posix calls*/
-		int fd = open(COM_PORT.c_str(), O_RDWR | O_NDELAY | O_NOCTTY);
+#ifdef _WIN32
+		const std::string COM_PATH_PREFIX = "\\\\.\\";
+		COM_PATH = COM_PATH_PREFIX + COM_PORT;
+#else
+		COM_PATH = COM_PORT;
+    	/*Just open and configure the serial port using posix calls*/
+		int fd = open(COM_PATH.c_str(), O_RDWR | O_NDELAY | O_NOCTTY);
 		if (fd < 0) 
 		{
-			LogService::Instance()->LogInfo("Port " + COM_PORT + " is invalid.");
+			LogService::Instance()->LogInfo("Port " + COM_PORT + " is invalid or already in use.");
 			return ErrorCode::INVALID_PORT;
 		}
 		
@@ -114,7 +116,6 @@ namespace SerialPortNS
 		tcsetattr(fd, TCSANOW, &options);
 		close(fd);
 
-		/*Open the serial port using the C lib*/
 		mPort = fopen(COM_PATH.c_str(), "rb+");
 
 		if (mPort != NULL)
@@ -128,7 +129,19 @@ namespace SerialPortNS
 			return ErrorCode::INVALID_PORT;
 		}
 #endif
+		/*Open the serial port using the C lib*/
+		mPort = fopen(COM_PATH.c_str(), "rb+");
 
+		if (mPort != NULL)
+		{
+			LogService::Instance()->LogInfo("Port " + COM_PORT + " is now open.");
+			return ErrorCode::NO_ERR;
+		}
+		else
+		{
+			LogService::Instance()->LogInfo("Port " + COM_PORT + " is invalid or already in use.");
+			return ErrorCode::INVALID_PORT;
+		}
 	}
 
 	ErrorCode SerialPort::SendAndWaitForReply(
@@ -146,11 +159,6 @@ namespace SerialPortNS
 
 		Send(command);
 
-#ifndef WIN32
-		//temporary solution to wait for the motor to respond, on linux the fread does not block
-		usleep(10000);
-#endif 
-
 		if (command[0] != 255)
 		{
 			/*Only expect an answer when we send the command to a single axis
@@ -158,10 +166,18 @@ namespace SerialPortNS
 			uint8_t buffer[255]{ 0 };
 			size_t readSize = MotorUtils::GetRcvCommandSize(command[1]);
 
-			fread(buffer,
+			size_t readResult = fread(buffer,
 				sizeof(uint8_t),
 				readSize,
 				mPort);
+
+			if (ferror(mPort) ||
+				readResult != readSize)
+			{
+				LogService::Instance()->LogInfo("Error reading from the serial port.");
+				clearerr(mPort);
+				return ErrorCode::PORT_READ_ERROR;
+			}
 
 			for (size_t i = 0; i < readSize; i++)
 			{

@@ -11,6 +11,8 @@ enum class ErrorCode {
 
 	/*Serial port*/
 	INVALID_PORT,
+	PORT_WRITE_ERROR,
+	PORT_READ_ERROR,
 	INVALID_COMMAND,
 
 	/*Motor commands*/
