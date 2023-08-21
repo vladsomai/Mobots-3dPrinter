@@ -430,7 +430,8 @@ namespace MotorNS
     ErrorCode Motor::Ping()
     {
         std::vector<uint8_t> result{};
-        std::vector<uint8_t> command{ mAxis, static_cast<uint8_t>(Commands::Ping), 0xA,  0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 };
+        std::vector<uint8_t> command{ mAxis, static_cast<uint8_t>(Commands::Ping), 0xA, 0x70, 0x69, 0x6E, 0x67, 0x2D, 0x70, 0x6F, 0x6E, 0x67, 0x00 };
+        
         LogService::Instance()->LogInfo("Pinging axis " + mAxisName + "..");
         auto res = Execute(command, result);
         if (res != ErrorCode::NO_ERR)
@@ -441,7 +442,12 @@ namespace MotorNS
         std::string resultStr{};
         for (const auto& byte : result)
         {
-            resultStr += std::to_string(byte);
+            if (byte > 32 && byte < 126)
+            {
+                /*32 to 126 are the ascii printable chars*/
+                resultStr += byte;
+                resultStr += ' ';
+            }
         }
         LogService::Instance()->LogInfo("Axis " + mAxisName + " responded to ping: " + resultStr);
 
@@ -477,7 +483,7 @@ namespace MotorNS
         auto speedRatio = MotorUtils::SpeedProfiles.at(MotorSpeedProfile::Medium) / rpm;
         auto timeForMove = rotations * speedRatio;
         
-        LogService::Instance()->LogInfo("AbsoluteMoveRotation: " + std::to_string(rotations) + "rev, Time:" + std::to_string(timeForMove));
+        LogService::Instance()->LogInfo("AbsoluteMoveRotation for axis " + mAxisName +": " + std::to_string(rotations) + "rev, Time:" + std::to_string(timeForMove));
 
         ByteList cmdParams{};
         MotorUtils::GetPositionAndTime(

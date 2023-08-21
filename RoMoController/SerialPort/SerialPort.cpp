@@ -7,6 +7,14 @@
 #include "../Motor/MotorUtils.h"
 #include "../LogService/LogService.h"
 
+#ifndef WIN32
+//include the headers to configure the serial port on linux
+#include <unistd.h>
+#include <fcntl.h>
+#include <termios.h>
+#endif
+
+
 namespace SerialPortNS
 {
 	using namespace LogServiceNS;
@@ -80,11 +88,30 @@ namespace SerialPortNS
 		}
 
 #else
-		//MAC or Linux
 		std::string COM_PATH{ "" };
 
 		COM_PATH.append(COM_PORT);
 
+		/*Just open and configure the serial port using posix calls*/
+		int fd = open(COM_PORT, O_RDWR | O_NDELAY | O_NOCTTY);
+		if (fd < 0) 
+		{
+			perror("Error opening serial port");
+			return -1;
+		}
+
+		/* Set up serial port */
+		options.c_cflag = B230400 | CS8 | CLOCAL | CREAD;
+		options.c_iflag = IGNPAR;
+		options.c_oflag = 0;
+		options.c_lflag = 0;
+
+		/* Apply the settings */
+		tcflush(fd, TCIFLUSH);
+		tcsetattr(fd, TCSANOW, &options);
+		close(fd);
+
+		/*Open the serial port using the C lib*/
 		mPort = fopen(COM_PATH.c_str(), "rb+");
 
 		if (mPort != NULL)
@@ -116,6 +143,10 @@ namespace SerialPortNS
 
 		Send(command);
 
+#ifndef WIN32
+		//temporary solution to wait for the motor to respond, on linux the fread does not block
+		usleep(10000);
+#endif 
 
 		if (command[0] != 255)
 		{
@@ -137,5 +168,4 @@ namespace SerialPortNS
 
 		return ErrorCode::NO_ERR;
 	}
-
 }
