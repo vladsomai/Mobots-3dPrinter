@@ -159,7 +159,10 @@ namespace SerialPortNS
 
 		Send(command);
 
-#ifdef _WIN32
+#ifndef _WIN32
+		usleep(10000);
+#endif // !_WIN32
+
 
 		if (command[0] != 255)
 		{
@@ -188,36 +191,5 @@ namespace SerialPortNS
 		}
 
 		return ErrorCode::NO_ERR;
-
-#else
-
-		if (command[0] != 255)
-		{
-			/*Only expect an answer when we send the command to a single axis
-			 *255 means 'all axes' */
-			uint8_t buffer[255]{};
-			size_t rcvLength = MotorUtils::GetRcvCommandSize(command[1]);
-			size_t readUntilNow = 0;
-
-			while (readUntilNow < rcvLength)
-			{
-				size_t readResult = fread(buffer, sizeof(uint8_t), 1, mPort);
-				result.push_back(buffer[0]);
-				readUntilNow++;
-
-				if (ferror(mPort) ||
-					readResult != 1)
-				{
-					LogService::Instance()->LogInfo("Error reading from the serial port.");
-					clearerr(mPort);
-					return ErrorCode::PORT_READ_ERROR;
-				}
-			}
-		}
-
-		return ErrorCode::NO_ERR;
-
-#endif
-
 	}
 }
