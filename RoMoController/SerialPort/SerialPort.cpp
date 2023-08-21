@@ -9,6 +9,8 @@
 
 #ifndef WIN32
 //include the headers to configure the serial port on linux
+#include <stdint.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <termios.h>
@@ -86,7 +88,6 @@ namespace SerialPortNS
 			LogService::Instance()->LogInfo("Port " + COM_PORT+" is invalid.");
 			return ErrorCode::INVALID_PORT;
 		}
-
 #else
 		std::string COM_PATH{ "" };
 
@@ -96,8 +97,8 @@ namespace SerialPortNS
 		int fd = open(COM_PORT, O_RDWR | O_NDELAY | O_NOCTTY);
 		if (fd < 0) 
 		{
-			perror("Error opening serial port");
-			return -1;
+			LogService::Instance()->LogInfo("Port " + COM_PORT + " is invalid.");
+			return ErrorCode::INVALID_PORT;
 		}
 
 		/* Set up serial port */
