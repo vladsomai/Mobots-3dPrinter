@@ -29,6 +29,7 @@ namespace SerialPortNS
 
 		static std::mutex SerialPortMutex;
 
+		friend std::unique_ptr<SerialPort> std::make_unique<SerialPort>();
 	public:
 
 		SerialPort& operator=(SerialPort& port) = delete;

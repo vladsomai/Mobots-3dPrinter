@@ -8,6 +8,7 @@
 #include "../LogService/LogService.h"
 #include "../Motor/MotorUtils.h"
 #include "ControllerCommand.h"
+#include <future>
 
 namespace ControllerNS
 {
@@ -19,6 +20,8 @@ namespace ControllerNS
 	{
 	private:
 		std::unordered_map<uint8_t, std::unique_ptr<Motor>> mAxes{};
+
+		ErrorCode AssureMovementDone(std::future<ErrorCode>& fut, const std::string& axis);
 	public:
 		Controller();
 		explicit Controller(std::vector<uint8_t> axes);

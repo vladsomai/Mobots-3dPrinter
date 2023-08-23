@@ -6,6 +6,7 @@
 #include "SerialPort.h"
 #include "../Motor/MotorUtils.h"
 #include "../LogService/LogService.h"
+#include"../Utilities/Utilities.h"
 
 #ifndef WIN32
 //include the headers to configure the serial port on linux
@@ -15,7 +16,6 @@
 #include <fcntl.h>
 #include <termios.h>
 #endif
-
 
 namespace SerialPortNS
 {
@@ -38,6 +38,9 @@ namespace SerialPortNS
 			return ErrorCode::INVALID_PORT;
 
 		auto cmdSize = command.size();
+
+		std::string stringCommand = "0x " + Utilities::ByteListToHexStr(command);
+		LogService::Instance()->LogInfo("SendAndWaitForReply -> Sending command: " + stringCommand);
 
 		size_t result = fwrite(command.data(),
 			sizeof(uint8_t),
@@ -68,7 +71,7 @@ namespace SerialPortNS
 
 		if (mInstance == nullptr)
 		{
-			mInstance = std::unique_ptr<SerialPort>(new SerialPort);
+			mInstance = std::make_unique<SerialPort>();
 		}
 
 		return mInstance;
@@ -150,10 +153,10 @@ namespace SerialPortNS
 	{
 		std::lock_guard<std::mutex> instanceLock{ SerialPortMutex };
 
+
 		if (mPort == NULL)
 		{
 			LogService::Instance()->LogInfo("SendAndWaitForReply -> Invalid port");
-
 			return ErrorCode::INVALID_PORT;
 		}
 
@@ -170,7 +173,6 @@ namespace SerialPortNS
 			 *255 means 'all axes' */
 			uint8_t buffer[255]{};
 			size_t expectedReadSize = MotorUtils::GetRcvCommandSize(command[1]);
-
 			size_t readBytes{};
 
 			while (readBytes < expectedReadSize)
@@ -180,7 +182,12 @@ namespace SerialPortNS
 
 				fread(buffer, sizeof(uint8_t), 1, mPort);
 				result.push_back(buffer[0]);
+				readBytes++;
 			}
+
+			std::string stringResult = "0x " + Utilities::ByteListToHexStr(result);
+
+			LogService::Instance()->LogInfo("SendAndWaitForReply -> Received message: " + stringResult);
 		}
 
 		return ErrorCode::NO_ERR;

@@ -17,12 +17,12 @@
 #include <algorithm>
 #include <memory>
 
-#include "MathHelper.h"
+#include "Utilities/MathHelper.h"
 using MathHelperNS::MathHelper;
 
 #include "PathFinder/Point2d.h"
 
-#include "ErrorCodes.h"
+#include "Utilities/ErrorCodes.h"
 
 using ByteList = std::vector<uint8_t>;
 

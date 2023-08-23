@@ -153,7 +153,7 @@ namespace MotorNS
 
         if (res == ErrorCode::NO_ERR)
         {
-            LogService::Instance()->LogInfo("Initialized!");
+            LogService::Instance()->LogInfo("All motors are initialized!");
             isInitialized = true;
         }
         return res;

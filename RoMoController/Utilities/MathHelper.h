@@ -1,7 +1,7 @@
 #ifndef MATH_HELPER
 #define MATH_HELPER
 
-#include "includes.h"
+#include "../includes.h"
 
 namespace MathHelperNS
 {

@@ -9,7 +9,8 @@ add_executable (${PROJECT_NAME}
 "main.cpp" 
 "includes.h" 
 "icon.rc" 
-"MathHelper.h")
+"Utilities/MathHelper.h" 
+"Utilities/Utilities.h")
 
 add_subdirectory ("Motor")
 add_subdirectory ("Controller")

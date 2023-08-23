@@ -17,6 +17,7 @@ enum class ErrorCode {
 
 	/*Motor commands*/
 	INVALID_PARAMETERS,
+	COMMAND_TIMEOUT,
 	NOT_IMPLEMENTED,
 
 	/*GCode*/

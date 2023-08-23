@@ -120,11 +120,19 @@ namespace ControllerNS
             mAxes['Y']->BlockUntilQueueSize(1, 1);
             mAxes['Z']->BlockUntilQueueSize(1, 1);
 
-            std::thread zAxisTh{};
+            //std::thread zAxisTh{};
+            std::future<ErrorCode> zAxisTh{};
             if (hasZvalue)
             {
-                zAxisTh = std::thread(&Controller::AbsoluteMoveRotation, this,
-                    currentCommand.z.value(), 60, 'Z');
+                zAxisTh = std::async(
+                    std::launch::async,
+                    &Controller::AbsoluteMoveRotation,
+                    this,
+                    currentCommand.z.value(),
+                    60,
+                    'Z');
+                /*          zAxisTh = std::thread(&Controller::AbsoluteMoveRotation, this,
+                              currentCommand.z.value(), 60, 'Z');*/
             }
 
             if (hasXYvalue)
@@ -140,10 +148,10 @@ namespace ControllerNS
                 double timeY = fabs(moveDistY / mmPerSecondY);
                 auto rpmY = currentCommand.velocity;
 
-                /*Adjust the speed for the small move axis so it arrives in the same as the long one*/
+                /*Adjust the speed for the small move axis so it arrives in the same as the longer one*/
                 if (MathHelper::Equals(timeX, timeY))
                 {
-                    // OK, we do not need to adjust anything
+                    // OK, we do not need to adjust anything since the end time for both moves is equal
                 }
                 else if (timeX > timeY)
                 {
@@ -240,33 +248,49 @@ namespace ControllerNS
                     "_" +
                     std::to_string(timeY));
 
-
-                if (zAxisTh.joinable())
+                auto zThResult = AssureMovementDone(zAxisTh, "Z");
+                if (zThResult != ErrorCode::NO_ERR)
                 {
-                    zAxisTh.join();
+                    return zThResult;
                 }
 
                 mAxes['Z']->BlockUntilQueueSize(1, 1);
 
                 // Move execution
                 std::vector<uint8_t> cmdResultX{};
-                std::thread xAxisTh = std::thread(&Controller::Execute, this,
+                std::future<ErrorCode> xAxisTh = std::async(std::launch::async, &Controller::Execute, this,
                     Commands::MultiMove, std::ref(cmdParamsX), std::ref(cmdResultX), 'X');
+                /*               std::thread xAxisTh = std::thread(&Controller::Execute, this,
+                                   Commands::MultiMove, std::ref(cmdParamsX), std::ref(cmdResultX), 'X');*/
 
                 std::vector<uint8_t> cmdResultY{};
-                Execute(Commands::MultiMove, cmdParamsY, cmdResultY, 'Y');
+                //auto executionResultY = Execute(Commands::MultiMove, cmdParamsY, cmdResultY, 'Y');
 
-                xAxisTh.join();
+                std::future<ErrorCode> yAxisTh = std::async(std::launch::async, &Controller::Execute, this,
+                    Commands::MultiMove, std::ref(cmdParamsY), std::ref(cmdResultY), 'Y');
+
+                auto xThResult = AssureMovementDone(xAxisTh, "X");
+                if (xThResult != ErrorCode::NO_ERR)
+                {
+                    return xThResult;
+                }
+
+                auto yThResult = AssureMovementDone(yAxisTh, "Y");
+                if (yThResult != ErrorCode::NO_ERR)
+                {
+                    return yThResult;
+                }
 
                 LogService::Instance()->LogInfo("Finished run " + std::to_string(i));
 
                 previousXyPoint = currentXyPoint;
                 // LogService::Instance()->StopTimer();
             }
-
-            if (zAxisTh.joinable())
+            
+            auto zThResult = AssureMovementDone(zAxisTh, "Z");
+            if (zThResult != ErrorCode::NO_ERR)
             {
-                zAxisTh.join();
+                return zThResult;
             }
         }
 
@@ -310,6 +334,30 @@ namespace ControllerNS
 
         return ErrorCode::NO_ERR;
     }
+
+    ErrorCode Controller::AssureMovementDone(std::future<ErrorCode>& fut, const std::string& axis)
+    {
+        if (fut.valid())
+        {
+            auto status = fut.wait_for(1s);
+            if (status != std::future_status::ready)
+            {
+                LogService::Instance()->LogInfo("Aborting current run because the " + axis + " movement execution timed out.");
+                return ErrorCode::COMMAND_TIMEOUT;
+            }
+
+            auto executionResult = fut.get();
+
+            if (executionResult != ErrorCode::NO_ERR)
+            {
+                LogService::Instance()->LogInfo("Aborting current run because there was an error in the " + axis + " movement execution.");
+                return ErrorCode::COMMAND_TIMEOUT;
+            }
+        }
+
+        return ErrorCode::NO_ERR;
+    }
+
 
     /*Sets the distance a particular axis will travel in one full rotation*/
     void Controller::SetDistancePerRotation(double distance, uint8_t axis)
