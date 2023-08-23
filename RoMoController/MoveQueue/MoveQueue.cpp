@@ -10,7 +10,8 @@ namespace MoveQueueNS
 
 	std::vector<uint8_t> MoveQueue::back() const
 	{
-		std::scoped_lock lockQueue{ MoveQueueMutex };
+		std::lock_guard<std::mutex> instanceLock{ MoveQueueMutex };
+
 		if (mMoveQueue.size() > 0)
 			return mMoveQueue.back();
 		else
@@ -19,7 +20,7 @@ namespace MoveQueueNS
 
 	std::vector<uint8_t> MoveQueue::front() const
 	{
-		std::scoped_lock lockQueue{ MoveQueueMutex };
+		std::lock_guard<std::mutex> instanceLock{ MoveQueueMutex };
 
 		if (mMoveQueue.size() > 0)
 			return mMoveQueue.front();
@@ -29,7 +30,7 @@ namespace MoveQueueNS
 
 	void MoveQueue::pop()
 	{
-		std::scoped_lock lockQueue{ MoveQueueMutex };
+		std::lock_guard<std::mutex> instanceLock{ MoveQueueMutex };
 
 		if (mMoveQueue.size() > 0)
 		{
@@ -39,14 +40,15 @@ namespace MoveQueueNS
 
 	void MoveQueue::push(const std::vector<uint8_t>& move)
 	{
-		std::scoped_lock lockQueue{ MoveQueueMutex };
+		std::lock_guard<std::mutex> instanceLock{ MoveQueueMutex };
+
 
 		mMoveQueue.push_back(std::move(move));
 	}
 
 	void MoveQueue::insert(const std::vector<std::vector<uint8_t>>& moves)
 	{
-		std::scoped_lock lockQueue{ MoveQueueMutex };
+		std::lock_guard<std::mutex> instanceLock{ MoveQueueMutex };
 
 		mMoveQueue.insert(mMoveQueue.end(), moves.begin(), moves.end());
 	}

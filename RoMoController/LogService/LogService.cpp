@@ -29,7 +29,8 @@ namespace LogServiceNS
 
 	std::unique_ptr<LogService>& LogService::Instance()
 	{
-		std::scoped_lock instanceLock{ LogMutex };
+		std::lock_guard<std::mutex> instanceLock{ LogMutex };
+
 
 		if (mInstance == nullptr)
 		{
@@ -41,7 +42,7 @@ namespace LogServiceNS
 
 	ErrorCode LogService::LogInfo(std::string text)
 	{
-		std::scoped_lock instanceLock{ LogMutex };
+		std::lock_guard<std::mutex> instanceLock{ LogMutex };
 
 		if (!mLogFile.is_open())
 			return ErrorCode::LOGFILENOTFOUND;

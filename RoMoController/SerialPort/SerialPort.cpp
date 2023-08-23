@@ -64,7 +64,7 @@ namespace SerialPortNS
 
 	std::unique_ptr<SerialPort>& SerialPort::Instance()
 	{
-		std::scoped_lock<std::mutex> instanceLock{ SerialPortMutex };
+		std::lock_guard<std::mutex> instanceLock{ SerialPortMutex };
 
 		if (mInstance == nullptr)
 		{
@@ -76,7 +76,7 @@ namespace SerialPortNS
 
 	ErrorCode SerialPort::Connect(const std::string& COM_PORT)
 	{
-		std::scoped_lock<std::mutex> instanceLock{ SerialPortMutex };
+		std::lock_guard<std::mutex> instanceLock{ SerialPortMutex };
 
 		if (mPort != NULL)
 		{
@@ -148,8 +148,8 @@ namespace SerialPortNS
 		const ByteList& command,
 		ByteList& result)
 	{
-		std::scoped_lock<std::mutex> instanceLock{ SerialPortMutex };
-		
+		std::lock_guard<std::mutex> instanceLock{ SerialPortMutex };
+
 		if (mPort == NULL)
 		{
 			LogService::Instance()->LogInfo("SendAndWaitForReply -> Invalid port");
@@ -157,36 +157,29 @@ namespace SerialPortNS
 			return ErrorCode::INVALID_PORT;
 		}
 
-		Send(command);
-
-#ifndef _WIN32
-		usleep(10000);
-#endif // !_WIN32
-
+		ErrorCode sendResult = Send(command);
+		if (sendResult != ErrorCode::NO_ERR)
+		{
+			LogService::Instance()->LogInfo("SendAndWaitForReply -> Could not send message");
+			return sendResult;
+		}
 
 		if (command[0] != 255)
 		{
 			/*Only expect an answer when we send the command to a single axis
 			 *255 means 'all axes' */
 			uint8_t buffer[255]{};
-			size_t readSize = MotorUtils::GetRcvCommandSize(command[1]);
+			size_t expectedReadSize = MotorUtils::GetRcvCommandSize(command[1]);
 
-			size_t readResult = fread(buffer,
-				sizeof(uint8_t),
-				readSize,
-				mPort);
+			size_t readBytes{};
 
-			if (ferror(mPort) ||
-				readResult != readSize)
+			while (readBytes < expectedReadSize)
 			{
-				LogService::Instance()->LogInfo("Error reading from the serial port.");
-				clearerr(mPort);
-				return ErrorCode::PORT_READ_ERROR;
-			}
+				/*Wait for the motor to answer with all the bytes, using a while
+				because POSIX implementation of read may not block the fread call*/
 
-			for (size_t i = 0; i < readSize; i++)
-			{
-				result.push_back(buffer[i]);
+				fread(buffer, sizeof(uint8_t), 1, mPort);
+				result.push_back(buffer[0]);
 			}
 		}
 

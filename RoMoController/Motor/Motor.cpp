@@ -31,7 +31,7 @@ namespace MotorNS
 
         while (!mStopTimeTh)
         {
-            /*Send the TimeSync every 10 times / 1 second*/
+            /*Send the TimeSync 10 times per 1 second*/
             for (int i = 0; i < 10; i++)
             {
                 time_point<Clock> currentTimestamp = Clock::now();
