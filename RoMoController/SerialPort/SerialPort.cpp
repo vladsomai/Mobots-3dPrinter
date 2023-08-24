@@ -167,6 +167,10 @@ namespace SerialPortNS
 			return sendResult;
 		}
 
+#ifndef _WIN32
+		usleep(10000);
+#endif // !_WIN32
+
 		if (command[0] != 255)
 		{
 			/*Only expect an answer when we send the command to a single axis

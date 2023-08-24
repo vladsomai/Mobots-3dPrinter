@@ -339,7 +339,7 @@ namespace ControllerNS
     {
         if (fut.valid())
         {
-            auto status = fut.wait_for(1s);
+            auto status = fut.wait_for(10s);
             if (status != std::future_status::ready)
             {
                 LogService::Instance()->LogInfo("Aborting current run because the " + axis + " movement execution timed out.");
