@@ -175,14 +175,25 @@ namespace SerialPortNS
 			size_t expectedReadSize = MotorUtils::GetRcvCommandSize(command[1]);
 			size_t readBytes{};
 
+			bool responseStarted = false;
 			while (readBytes < expectedReadSize)
 			{
 				/*Wait for the motor to answer with all the bytes, using a while
 				because POSIX implementation of read may not block the fread call*/
 
 				fread(buffer, sizeof(uint8_t), 1, mPort);
-				result.push_back(buffer[0]);
-				readBytes++;
+				
+				if (buffer[0] == 'R')
+				{
+					responseStarted = true;
+				}
+				
+				if (responseStarted)
+				{
+					//Received the first byte from response
+					result.push_back(buffer[0]);
+					readBytes++;
+				}
 			}
 
 			std::string stringResult = "0x " + Utilities::ByteListToHexStr(result);
