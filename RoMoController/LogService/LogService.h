@@ -40,6 +40,8 @@ namespace LogServiceNS
 		const std::string currentDate();
 		const std::string currentTime();
 
+		friend std::unique_ptr<LogService> std::make_unique<LogService>();
+
 	public:
 
 		LogService& operator=(LogService&) = delete;

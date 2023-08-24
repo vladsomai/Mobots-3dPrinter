@@ -110,13 +110,13 @@ namespace SerialPortNS
 
 		/* Set up serial port */
 		options.c_cflag = B230400 | CS8 | CLOCAL | CREAD;
-		options.c_iflag = IGNPAR;
+		options.c_iflag = 0;
 		options.c_oflag = 0;
 		options.c_lflag = 0;
 
 		/* Apply the settings */
-		tcflush(fd, TCIFLUSH);
-		tcsetattr(fd, TCSANOW, &options);
+		//tcflush(fd, TCIFLUSH);
+		//tcsetattr(fd, TCSANOW, &options);
 		close(fd);
 
 		mPort = fopen(COM_PATH.c_str(), "rb+");

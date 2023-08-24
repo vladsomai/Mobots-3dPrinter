@@ -95,22 +95,6 @@ namespace ControllerNS
 
     ErrorCode Controller::ExecuteMoveWithVelocity(std::vector<ControllerCommand> &path)
     {
-        size_t tempCount{};
-        while (true)
-        {
-            mAxes['X']->Ping();
-            mAxes['Y']->Ping();
-            mAxes['Z']->Ping();
-            tempCount++;
-
-            if (tempCount % 100)
-            {
-                LogService::Instance()->LogInfo("Ping runs " + std::to_string(tempCount));
-            }
-        }
-
-        return ErrorCode::NO_ERR;
-
         Point2d previousXyPoint{};
 
         // Make sure we start all the axes at the same time

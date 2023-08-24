@@ -34,7 +34,7 @@ namespace LogServiceNS
 
 		if (mInstance == nullptr)
 		{
-			mInstance = std::unique_ptr<LogService>(new LogService);
+			mInstance = std::make_unique<LogService>();
 		}
 
 		return mInstance;
