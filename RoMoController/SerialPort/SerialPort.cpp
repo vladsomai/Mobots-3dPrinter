@@ -110,7 +110,7 @@ namespace SerialPortNS
 
 		/* Set up serial port */
 		options.c_cflag = B230400 | CS8 | CLOCAL | CREAD;
-		options.c_iflag = IGNPAR;
+		options.c_iflag = 0;
 		options.c_oflag = 0;
 		options.c_lflag = 0;
 
