@@ -140,7 +140,6 @@ namespace SerialPortNS
 			return ErrorCode::INVALID_PORT;
 		}
 		
-		fcntl(fd, )
 		struct termios options; /* Serial ports setting */
 
 		/* Set up serial port
