@@ -147,8 +147,8 @@ namespace SerialPortNS
 		StopBits: 1
 		Parity: None
 		DataBits 8*/
-		cfsetospeed(&tty, B230400);
-		cfsetispeed(&tty, B230400);
+		cfsetospeed(&options, B230400);
+		cfsetispeed(&options, B230400);
 		options.c_cflag = CLOCAL | CREAD;
 		options.c_cflag &= ~PARENB;//parity none
 		options.c_cflag &= ~CSTOPB;//1 stop bit
