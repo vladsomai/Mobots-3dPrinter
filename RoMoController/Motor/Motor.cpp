@@ -496,7 +496,6 @@ namespace MotorNS
 
     ErrorCode Motor::AbsoluteMove(double distance, MotorSpeedProfile speedProfile)
     {
-
         auto speedRatio = MotorUtils::SpeedProfiles.at(speedProfile) / MotorUtils::SpeedProfiles.at(MotorSpeedProfile::Medium);
         auto distanceTraveledWithCurrentSpeedInOneSecond = mDistancePerRotation * speedRatio;
         auto timeForMove = distance / distanceTraveledWithCurrentSpeedInOneSecond;
@@ -510,8 +509,10 @@ namespace MotorNS
             cmdParams);
 
         ByteList result{};
-     
-        return TrapezoidMove(cmdParams, result);
+
+        auto res = TrapezoidMove(cmdParams, result);
+        BlockUntilQueueSize(10, 1);
+        return res;
     }
 
 }

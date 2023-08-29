@@ -8,7 +8,9 @@
 #include "../LogService/LogService.h"
 #include"../Utilities/Utilities.h"
 
-#ifndef WIN32
+#ifdef WIN32
+#include <Windows.h>
+#else
 //include the headers to configure the serial port on linux
 #include <stdint.h>
 #include <stdio.h>
@@ -93,30 +95,69 @@ namespace SerialPortNS
 
 		std::string COM_PATH{ "" };
 
-#ifdef _WIN32
+#ifdef WIN32
 		const std::string COM_PATH_PREFIX = "\\\\.\\";
 		COM_PATH = COM_PATH_PREFIX + COM_PORT;
+		
+		HANDLE hComm = CreateFile(COM_PATH.c_str(), 
+			GENERIC_READ | GENERIC_WRITE,      
+			0,                                 
+			NULL,                              
+			OPEN_EXISTING,                     
+			0,                                 
+			NULL);
+
+		if (hComm == INVALID_HANDLE_VALUE)
+		{
+			LogService::Instance()->LogInfo("Port " + COM_PORT + " is invalid.");
+			return ErrorCode::INVALID_PORT;
+		}
+
+		//abort any read/writes and clear the input/output buffers
+		PurgeComm(hComm, PURGE_RXABORT | PURGE_RXCLEAR | PURGE_TXABORT | PURGE_TXCLEAR);
+
+		DCB dcbSerialParams{};
+		dcbSerialParams.BaudRate = 230400;      
+		dcbSerialParams.ByteSize = 8;             
+		dcbSerialParams.StopBits = ONESTOPBIT;    
+		dcbSerialParams.Parity = NOPARITY;   
+		BOOL Status = SetCommState(hComm, &dcbSerialParams);
+		if (Status == FALSE)
+		{
+			LogService::Instance()->LogInfo("Cannot setup port " + COM_PORT + ".");
+			CloseHandle(hComm);
+			return ErrorCode::INVALID_PORT;
+		}
+
+		CloseHandle(hComm);
 #else
 		COM_PATH = COM_PORT;
     	/*Just open and configure the serial port using posix calls*/
 		int fd = open(COM_PATH.c_str(), O_RDWR | O_NDELAY | O_NOCTTY);
 		if (fd < 0) 
 		{
-			LogService::Instance()->LogInfo("Port " + COM_PORT + " is invalid or already in use.");
+			LogService::Instance()->LogInfo("Port " + COM_PORT + " is invalid.");
 			return ErrorCode::INVALID_PORT;
 		}
 		
 		struct termios options; /* Serial ports setting */
 
-		/* Set up serial port */
+		/* Set up serial port
+		baudRate: 230400
+		StopBits: 1
+		Parity: None
+		DataBits 8*/
 		options.c_cflag = B230400 | CS8 | CLOCAL | CREAD;
+		options.c_cflag &= (~ICANON);
 		options.c_iflag = 0;
 		options.c_oflag = 0;
 		options.c_lflag = 0;
 
 		/* Apply the settings */
-		//tcflush(fd, TCIFLUSH);
-		//tcsetattr(fd, TCSANOW, &options);
+		usleep(10000);
+		tcflush(fd, TCIOFLUSH);//discard any input/output that may sit in the buffer
+		tcsetattr(fd, TCSANOW, &options);
+		
 		close(fd);
 
 		mPort = fopen(COM_PATH.c_str(), "rb+");
@@ -142,7 +183,7 @@ namespace SerialPortNS
 		}
 		else
 		{
-			LogService::Instance()->LogInfo("Port " + COM_PORT + " is invalid or already in use.");
+			LogService::Instance()->LogInfo("Port " + COM_PORT + " is invalid.");
 			return ErrorCode::INVALID_PORT;
 		}
 	}
