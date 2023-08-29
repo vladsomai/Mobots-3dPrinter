@@ -133,13 +133,14 @@ namespace SerialPortNS
 #else
 		COM_PATH = COM_PORT;
     	/*Just open and configure the serial port using posix calls*/
-		int fd = open(COM_PATH.c_str(), O_RDWR | O_NDELAY | O_NOCTTY);
+		int fd = open(COM_PATH.c_str(), O_RDWR | O_NOCTTY);
 		if (fd < 0) 
 		{
 			LogService::Instance()->LogInfo("Port " + COM_PORT + " is invalid.");
 			return ErrorCode::INVALID_PORT;
 		}
 		
+		fcntl(fd, )
 		struct termios options; /* Serial ports setting */
 
 		/* Set up serial port
@@ -147,8 +148,13 @@ namespace SerialPortNS
 		StopBits: 1
 		Parity: None
 		DataBits 8*/
-		options.c_cflag = B230400 | CS8 | CLOCAL | CREAD;
-		options.c_cflag &= (~ICANON);
+		cfsetospeed(&tty, B230400);
+		cfsetispeed(&tty, B230400);
+		options.c_cflag = CLOCAL | CREAD;
+		options.c_cflag &= ~PARENB;//parity none
+		options.c_cflag &= ~CSTOPB;//1 stop bit
+		options.c_cflag &= ~CSIZE;//clear data bits
+		options.c_cflag |= CS8; ;//set data bits to 8
 		options.c_iflag = 0;
 		options.c_oflag = 0;
 		options.c_lflag = 0;

@@ -511,6 +511,15 @@ namespace MotorNS
         ByteList result{};
 
         auto res = TrapezoidMove(cmdParams, result);
+
+        //wait for the move to finish
+        double timeInMilis = timeForMove * 1000 + 50;
+#ifdef WIN32
+        Sleep(static_cast<DWORD>(timeInMilis));
+#else
+        usleep(static_cast<useconds_t>(timeInMilis * 1000));
+#endif // WIN32
+
         BlockUntilQueueSize(10, 1);
         return res;
     }
