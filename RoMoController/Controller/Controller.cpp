@@ -98,7 +98,7 @@ namespace ControllerNS
         Point2d previousXyPoint{};
 
         // Make sure we start all the axes at the same time
-        InsertZeroMove(1);
+        //InsertZeroMove(1);
         int timeForLastMoveX = 0;
         int timeForLastMoveY = 0;
 
