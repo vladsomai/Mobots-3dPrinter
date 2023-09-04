@@ -143,13 +143,13 @@ namespace SerialPortNS
 #else
 		COM_PATH = COM_PORT;
     	/*Just open and configure the serial port using posix calls*/
-		int fd = open(COM_PATH.c_str(), O_RDWR | O_NOCTTY);
-		if (fd < 0) 
-		{
-			LogService::Instance()->LogInfo("Port " + COM_PORT + " is invalid.");
-			return ErrorCode::INVALID_PORT;
-		}
-		
+		//int fd = open(COM_PATH.c_str(), O_RDWR | O_NOCTTY);
+		//if (fd < 0) 
+		//{
+		//	LogService::Instance()->LogInfo("Port " + COM_PORT + " is invalid.");
+		//	return ErrorCode::INVALID_PORT;
+		//}
+		//
 		struct termios options; /* Serial ports setting */
 
 		/* Set up serial port
@@ -163,13 +163,13 @@ namespace SerialPortNS
 		options.c_lflag = 0;
 
 		/* Apply the settings */
-		usleep(10000);
-		tcflush(fd, TCIOFLUSH);//discard any input/output that may sit in the buffer
-		cfmakeraw(&options);// make raw
-		tcsetattr(fd, TCSANOW, &options);
-		std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-		close(fd);
+		//usleep(10000);
+		//tcflush(fd, TCIOFLUSH);//discard any input/output that may sit in the buffer
+		//cfmakeraw(&options);// make raw
+		//tcsetattr(fd, TCSANOW, &options);
+		//std::this_thread::sleep_for(std::chrono::milliseconds(500));
+		//
+		//close(fd);
 #endif
 
 
