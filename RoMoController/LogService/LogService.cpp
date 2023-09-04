@@ -6,17 +6,35 @@
 #include "LogService.h"
 #include <fstream>
 #include <filesystem>
+#include <stdio.h>//for remove()
 
 namespace LogServiceNS
 {
 	std::mutex LogService::LogMutex{};
-	uint32_t LogService::MaxLogFileSize = 2 * 1024 * 1024;
+	uintmax_t LogService::MaxLogFileSize = 2 * 1024 * 1024;
 
 	LogService::LogService()
 	{
-		mLogFilePath = currentDate() + ".log";
-		std::string logFileName{ mLogFilePath };
-		mLogFile.open(logFileName, std::ofstream::out | std::ofstream::app);
+		mLogFilePath_1 = currentDate() + "_1" + ".log";
+		mLogFilePath_2 = currentDate() + "_2" + ".log";
+		
+		std::error_code err{};
+		
+		if (std::filesystem::exists(mLogFilePath_1, err))
+		{
+			std::filesystem::remove(mLogFilePath_1);
+		}
+		
+		err.clear();
+
+		if (std::filesystem::exists(mLogFilePath_2, err))
+		{
+			std::filesystem::remove(mLogFilePath_2);
+		}
+
+		mLogFilePath = mLogFilePath_1;//initial log file
+
+		OpenFile(mLogFilePath);
 	}
 
 	LogService::~LogService()
@@ -27,10 +45,21 @@ namespace LogServiceNS
 		}
 	}
 
+	ErrorCode LogService::OpenFile(std::string filePath)
+	{
+		if (mLogFile.is_open())
+		{
+			mLogFile.close();
+		}
+
+		mLogFile.open(filePath, std::ofstream::out | std::ofstream::app);
+
+		return ErrorCode::NO_ERR;
+	}
+
 	std::unique_ptr<LogService>& LogService::Instance()
 	{
 		std::lock_guard<std::mutex> instanceLock{ LogMutex };
-
 
 		if (mInstance == nullptr)
 		{
@@ -46,6 +75,31 @@ namespace LogServiceNS
 
 		if (!mLogFile.is_open())
 			return ErrorCode::LOGFILENOTFOUND;
+
+		if (std::filesystem::file_size(mLogFilePath) > MaxLogFileSize)
+		{
+			mLogFile.close();
+
+			if (mLogFilePath == mLogFilePath_1)
+			{
+				//current file is the first one, open the second
+				mLogFilePath = mLogFilePath_2;
+
+				if (std::filesystem::exists(mLogFilePath))
+				{
+					//remove the old one and restart logging in a fresh file
+					std::filesystem::remove(mLogFilePath);
+				}
+			}
+			else if (mLogFilePath == mLogFilePath_2)
+			{
+				//the first file should exist when getting here, remove it
+				mLogFilePath = mLogFilePath_1;
+				std::filesystem::remove(mLogFilePath);
+			}
+
+			OpenFile(mLogFilePath);
+		}
 
 		std::string log = currentDate() + "|" + currentTime() + "|Info|" + text + '\n';
 		mLogFile << log;

@@ -103,8 +103,8 @@ namespace SerialPortNS
 			GENERIC_READ | GENERIC_WRITE,      
 			0,                                 
 			NULL,                              
-			OPEN_EXISTING,                     
-			0,                                 
+			OPEN_EXISTING,
+			FILE_FLAG_NO_BUFFERING | FILE_FLAG_OVERLAPPED,
 			NULL);
 
 		if (hComm == INVALID_HANDLE_VALUE)
@@ -117,6 +117,15 @@ namespace SerialPortNS
 		PurgeComm(hComm, PURGE_RXABORT | PURGE_RXCLEAR | PURGE_TXABORT | PURGE_TXCLEAR);
 
 		DCB dcbSerialParams{};
+		SecureZeroMemory(&dcbSerialParams, sizeof(DCB));
+		dcbSerialParams.DCBlength = sizeof(DCB);
+
+		GetCommState(hComm, &dcbSerialParams);
+		LogService::Instance()->LogInfo("Baudrate: " + std::to_string(dcbSerialParams.BaudRate) +
+			", StopBits: " + std::to_string(dcbSerialParams.StopBits) +
+			", Parity: " + std::to_string(dcbSerialParams.Parity) +
+			", ByteSize: " + std::to_string(dcbSerialParams.ByteSize));
+
 		dcbSerialParams.BaudRate = 230400;      
 		dcbSerialParams.ByteSize = 8;             
 		dcbSerialParams.StopBits = ONESTOPBIT;    
@@ -128,6 +137,7 @@ namespace SerialPortNS
 			CloseHandle(hComm);
 			return ErrorCode::INVALID_PORT;
 		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
 		CloseHandle(hComm);
 #else
@@ -148,30 +158,21 @@ namespace SerialPortNS
 		Parity: None
 		DataBits 8*/
 		options.c_cflag = 6323;
-		options.c_iflag = 0;
+		options.c_iflag = IGNBRK;
 		options.c_oflag = 0;
 		options.c_lflag = 0;
 
 		/* Apply the settings */
 		usleep(10000);
 		tcflush(fd, TCIOFLUSH);//discard any input/output that may sit in the buffer
+		cfmakeraw(&options);// make raw
 		tcsetattr(fd, TCSANOW, &options);
-		
+		std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
 		close(fd);
-
-		mPort = fopen(COM_PATH.c_str(), "rb+");
-
-		if (mPort != NULL)
-		{
-			LogService::Instance()->LogInfo("Port " + COM_PORT + " is now open.");
-			return ErrorCode::NO_ERR;
-		}
-		else 
-		{
-			LogService::Instance()->LogInfo("Port " + COM_PORT + " is invalid.");
-			return ErrorCode::INVALID_PORT;
-		}
 #endif
+
+
 		/*Open the serial port using the C lib*/
 		mPort = fopen(COM_PATH.c_str(), "rb+");
 
@@ -192,7 +193,6 @@ namespace SerialPortNS
 		ByteList& result)
 	{
 		std::lock_guard<std::mutex> instanceLock{ SerialPortMutex };
-
 
 		if (mPort == NULL)
 		{

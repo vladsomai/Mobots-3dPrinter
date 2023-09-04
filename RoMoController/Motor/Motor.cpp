@@ -3,6 +3,7 @@
 #include "Commands.h"
 #include "../SerialPort/SerialPort.h"
 #include "../LogService/LogService.h"
+#include "../Utilities//Utilities.h"
 
 namespace MotorNS 
 {
@@ -31,7 +32,8 @@ namespace MotorNS
 
         while (!mStopTimeTh)
         {
-            /*Send the TimeSync 10 times per 1 second*/
+            LogService::Instance()->StartTimer();
+            /*Send the TimeSync 10 times / second */
             for (int i = 0; i < 10; i++)
             {
                 time_point<Clock> currentTimestamp = Clock::now();
@@ -43,8 +45,9 @@ namespace MotorNS
 
                 ByteList result{};
                 TimeSync(timeBytes, result);
-                sleep_for(milliseconds(97));
+                sleep_for(milliseconds(90));
             }
+            LogService::Instance()->StopTimer();
         }
     }
 
@@ -111,17 +114,16 @@ namespace MotorNS
                 TimeTh.join();
         }
 
-        /*
-        if (mAxis != 255 || mAxis != 90)
-        {
-            terminateRunServiceTh = true;
-            RunServiceTh.join();
-        }
-        */
+        //if (mAxis != 255 || mAxis != 90)
+        //{
+        //    terminateRunServiceTh = true;
+        //    RunServiceTh.join();
+        //}
     }
  
     ErrorCode Motor::Initialize()
     {
+        //the initialize will only be called for 255 axis
         ErrorCode res = ErrorCode::NO_ERR;
 
         if (mAxis != 255)
@@ -130,8 +132,6 @@ namespace MotorNS
         std::vector<uint8_t> cmdResult{};
 
         res = Reset(cmdResult);
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(600));
 
         res = EnableMOSFETs(cmdResult);
 
@@ -149,7 +149,7 @@ namespace MotorNS
             LogService::Instance()->LogInfo("Max velocity set to " + std::to_string(maxVelocity));
         }
 
-        //TimeTh = std::thread(&Motor::TimeThread, this);
+        TimeTh = std::thread(&Motor::TimeThread, this);
 
         if (res == ErrorCode::NO_ERR)
         {
@@ -385,7 +385,11 @@ namespace MotorNS
     ErrorCode Motor::Reset(std::vector<uint8_t>& result)
     {
         std::vector<uint8_t> command{ mAxis, static_cast<uint8_t>(Commands::Reset), 0 };
-        return Execute(command, result);
+        auto res =  Execute(command, result);
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+        return res;
     }
 
     ErrorCode Motor::SetMaxMotorCurrent() {
@@ -476,12 +480,12 @@ namespace MotorNS
         return mDistancePerRotation;
     }
 
-    ErrorCode Motor::AbsoluteMoveRotation(double rotations, double rpm)
+    ErrorCode Motor::RelativeMoveRotation(double rotations, double rpm)
     {
         auto speedRatio = MotorUtils::SpeedProfiles.at(MotorSpeedProfile::Medium) / rpm;
-        auto timeForMove = rotations * speedRatio;
+        auto timeForMove = fabs(rotations * speedRatio);
         
-        LogService::Instance()->LogInfo("AbsoluteMoveRotation for axis " + mAxisName +": " + std::to_string(rotations) + "rev, Time:" + std::to_string(timeForMove));
+        LogService::Instance()->LogInfo("RelativeMoveRotation for axis " + mAxisName +": " + std::to_string(rotations) + "rev, Time:" + std::to_string(timeForMove));
 
         ByteList cmdParams{};
         MotorUtils::GetPositionAndTime(
@@ -494,18 +498,18 @@ namespace MotorNS
         return TrapezoidMove(cmdParams, result);
     }
 
-    ErrorCode Motor::AbsoluteMove(double distance, MotorSpeedProfile speedProfile)
+    ErrorCode Motor::RelativeMove(double distance, MotorSpeedProfile speedProfile)
     {
         auto speedRatio = MotorUtils::SpeedProfiles.at(speedProfile) / MotorUtils::SpeedProfiles.at(MotorSpeedProfile::Medium);
         auto distanceTraveledWithCurrentSpeedInOneSecond = mDistancePerRotation * speedRatio;
-        auto timeForMove = distance / distanceTraveledWithCurrentSpeedInOneSecond;
+        auto timeForMoveInSeconds = fabs(distance / distanceTraveledWithCurrentSpeedInOneSecond);
 
-        LogService::Instance()->LogInfo("AbsoluteMove: " + std::to_string(distance) + "mm, Time:" + std::to_string(timeForMove));
+        LogService::Instance()->LogInfo("RelativeMove: " + std::to_string(distance) + "mm, Time:" + std::to_string(timeForMoveInSeconds));
 
         ByteList cmdParams{};
         MotorUtils::GetPositionAndTime(
             MotorUtils::DistanceToRotaions(distance, mDistancePerRotation),
-            timeForMove,
+            timeForMoveInSeconds,
             cmdParams);
 
         ByteList result{};
@@ -513,14 +517,10 @@ namespace MotorNS
         auto res = TrapezoidMove(cmdParams, result);
 
         //wait for the move to finish
-        double timeInMilis = timeForMove * 1000 + 50;
-#ifdef WIN32
-        Sleep(static_cast<DWORD>(timeInMilis));
-#else
-        usleep(static_cast<useconds_t>(timeInMilis * 1000));
-#endif // WIN32
+        double timeInMilis = timeForMoveInSeconds * 1000 + timeForMoveInSeconds * 0.1;
+        std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(timeInMilis)));
 
-        BlockUntilQueueSize(10, 1);
+        BlockUntilQueueSize(1, 1);
         return res;
     }
 

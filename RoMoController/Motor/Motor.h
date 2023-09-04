@@ -56,9 +56,9 @@ namespace MotorNS
         /*Gets the distance this particular axis will travel in one full rotation*/
         double GetDistancePerRotation();
         
-        ErrorCode AbsoluteMove(double distance, MotorSpeedProfile speedProfile);
+        ErrorCode RelativeMove(double distance, MotorSpeedProfile speedProfile);
 
-        ErrorCode AbsoluteMoveRotation(double rotations, double rpm);
+        ErrorCode RelativeMoveRotation(double rotations, double rpm);
 
         ErrorCode BlockUntilQueueSize(uint32_t timeToBlockBetweenPoll, size_t blockUntilQueueSizeLess);
 

@@ -72,14 +72,14 @@ namespace ControllerNS
         return err;
     }
 
-    ErrorCode Controller::AbsoluteMove(double distance, MotorSpeedProfile speedProfile, uint8_t axis)
+    ErrorCode Controller::RelativeMove(double distance, MotorSpeedProfile speedProfile, uint8_t axis)
     {
-        return mAxes[axis]->AbsoluteMove(distance, speedProfile);
+        return mAxes[axis]->RelativeMove(distance, speedProfile);
     }
 
-    ErrorCode Controller::AbsoluteMoveRotation(double rotation, double rpm, uint8_t axis)
+    ErrorCode Controller::RelativeMoveRotation(double rotation, double rpm, uint8_t axis)
     {
-        return mAxes[axis]->AbsoluteMoveRotation(rotation, rpm);
+        return mAxes[axis]->RelativeMoveRotation(rotation, rpm);
     }
 
     void Controller::InsertZeroMove(double time)
@@ -98,7 +98,7 @@ namespace ControllerNS
         Point2d previousXyPoint{};
 
         // Make sure we start all the axes at the same time
-        //InsertZeroMove(1);
+        InsertZeroMove(1);
 
         const auto pSize = path.size();
         for (size_t i = 0; i < pSize; i++)
@@ -120,19 +120,17 @@ namespace ControllerNS
             mAxes['Y']->BlockUntilQueueSize(1, 1);
             mAxes['Z']->BlockUntilQueueSize(1, 1);
 
-            //std::thread zAxisTh{};
-            std::future<ErrorCode> zAxisTh{};
+            //std::future<ErrorCode> zAxisTh{};
             if (hasZvalue)
             {
-                zAxisTh = std::async(
+                RelativeMoveRotation(currentCommand.z.value(), 60, 'Z');
+                /*zAxisTh = std::async(
                     std::launch::async,
-                    &Controller::AbsoluteMoveRotation,
+                    &Controller::RelativeMoveRotation,
                     this,
                     currentCommand.z.value(),
                     60,
-                    'Z');
-                /*          zAxisTh = std::thread(&Controller::AbsoluteMoveRotation, this,
-                              currentCommand.z.value(), 60, 'Z');*/
+                    'Z');*/
             }
 
             if (hasXYvalue)
@@ -186,9 +184,7 @@ namespace ControllerNS
                     }
                 }
 
-                /*When reaching the last path point, insert a move with velocity set to 0
-                 * to avoid entering with the motor in an error
-                 */
+      
                 Point2d nextXyPoint{};
 
                 if (i < pSize - 1)
@@ -212,6 +208,9 @@ namespace ControllerNS
                     insertZeroMove = true;
                 }
 
+                /*When reaching the last path point, insert a move with velocity set to 0
+                 * to avoid entering with the motor in an error
+                 */
                 if (i == pSize - 1)
                 {
                     insertZeroMove = true;
@@ -248,23 +247,23 @@ namespace ControllerNS
                     "_" +
                     std::to_string(timeY));
 
-                auto zThResult = AssureMovementDone(zAxisTh, "Z");
-                if (zThResult != ErrorCode::NO_ERR)
+   /*             if (hasZvalue)
                 {
-                    return zThResult;
-                }
+                    auto zThResult = AssureMovementDone(zAxisTh, "Z");
+                    if (zThResult != ErrorCode::NO_ERR)
+                    {
+                        return zThResult;
+                    }
 
-                mAxes['Z']->BlockUntilQueueSize(1, 1);
+                    mAxes['Z']->BlockUntilQueueSize(1, 1);
+                }*/
 
                 // Move execution
                 std::vector<uint8_t> cmdResultX{};
                 std::future<ErrorCode> xAxisTh = std::async(std::launch::async, &Controller::Execute, this,
                     Commands::MultiMove, std::ref(cmdParamsX), std::ref(cmdResultX), 'X');
-                /*               std::thread xAxisTh = std::thread(&Controller::Execute, this,
-                                   Commands::MultiMove, std::ref(cmdParamsX), std::ref(cmdResultX), 'X');*/
 
                 std::vector<uint8_t> cmdResultY{};
-                //auto executionResultY = Execute(Commands::MultiMove, cmdParamsY, cmdResultY, 'Y');
 
                 std::future<ErrorCode> yAxisTh = std::async(std::launch::async, &Controller::Execute, this,
                     Commands::MultiMove, std::ref(cmdParamsY), std::ref(cmdResultY), 'Y');
@@ -287,11 +286,14 @@ namespace ControllerNS
                 // LogService::Instance()->StopTimer();
             }
             
-            auto zThResult = AssureMovementDone(zAxisTh, "Z");
-            if (zThResult != ErrorCode::NO_ERR)
-            {
-                return zThResult;
-            }
+            //if (hasZvalue)
+            //{
+            //    auto zThResult = AssureMovementDone(zAxisTh, "Z");
+            //    if (zThResult != ErrorCode::NO_ERR)
+            //    {
+            //        return zThResult;
+            //    }
+            //}
         }
 
         LogService::Instance()->LogInfo("Finished MoveWithVelocity");

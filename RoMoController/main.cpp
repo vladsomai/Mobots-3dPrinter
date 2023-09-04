@@ -50,17 +50,17 @@ int main()
 	std::vector<uint8_t> axes{ 'X','Y','Z' };
 	Controller printer(axes);
 
-	while (true)
-	{
-		auto res1 = printer.AbsoluteMove(10, MotorSpeedProfile::Fast, 'X');
-		if (res1 != ErrorCode::NO_ERR)
-			return -1;
+	//while (true)
+	//{
+	//	auto res1 = printer.RelativeMove(10, MotorSpeedProfile::Fast, 'X');
+	//	if (res1 != ErrorCode::NO_ERR)
+	//		return -1;
 
-		auto res2 = printer.AbsoluteMove(-10, MotorSpeedProfile::Fast, 'X');
-		if (res2 != ErrorCode::NO_ERR)
-			return -1;
-	}
-	return 0;
+	//	auto res2 = printer.RelativeMove(-10, MotorSpeedProfile::Fast, 'X');
+	//	if (res2 != ErrorCode::NO_ERR)
+	//		return -1;
+	//}
+	//return 0;
 
 	long long counter = 0;
 	for (int i = 0; i < 1; i++)

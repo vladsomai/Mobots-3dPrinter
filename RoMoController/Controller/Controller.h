@@ -33,8 +33,8 @@ namespace ControllerNS
 			std::vector<uint8_t>& result,
 			uint8_t axis = 255);
 
-		ErrorCode AbsoluteMove(double distance, MotorSpeedProfile speedProfile, uint8_t axis);
-		ErrorCode AbsoluteMoveRotation(double rotation, double rpm, uint8_t axis);
+		ErrorCode RelativeMove(double distance, MotorSpeedProfile speedProfile, uint8_t axis);
+		ErrorCode RelativeMoveRotation(double rotation, double rpm, uint8_t axis);
 
 		ErrorCode ExecuteMoveWithVelocity(std::vector<ControllerCommand>& path);
 		ErrorCode ExecuteBezierPath(std::vector<Point2d>& path);
