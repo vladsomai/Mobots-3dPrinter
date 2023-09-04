@@ -37,7 +37,7 @@ namespace MotorNS {
     {
     public:
 
-        /*Velocity map*/
+        /*Velocity map, do not change*/
         static const inline std::unordered_map<MotorSpeedProfile, double> SpeedProfiles{
             { Low,30.0 },
             { Medium, 60.0 },

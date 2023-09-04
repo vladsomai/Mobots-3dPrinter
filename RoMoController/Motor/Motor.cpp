@@ -483,19 +483,26 @@ namespace MotorNS
     ErrorCode Motor::RelativeMoveRotation(double rotations, double rpm)
     {
         auto speedRatio = MotorUtils::SpeedProfiles.at(MotorSpeedProfile::Medium) / rpm;
-        auto timeForMove = fabs(rotations * speedRatio);
+        auto timeForMoveInSeconds = fabs(rotations * speedRatio);
         
-        LogService::Instance()->LogInfo("RelativeMoveRotation for axis " + mAxisName +": " + std::to_string(rotations) + "rev, Time:" + std::to_string(timeForMove));
+        LogService::Instance()->LogInfo("RelativeMoveRotation for axis " + mAxisName +": " + std::to_string(rotations) + "rev, Time:" + std::to_string(timeForMoveInSeconds));
 
         ByteList cmdParams{};
         MotorUtils::GetPositionAndTime(
             rotations,
-            timeForMove,
+            timeForMoveInSeconds,
             cmdParams);
 
         ByteList result{};
 
-        return TrapezoidMove(cmdParams, result);
+        auto res = TrapezoidMove(cmdParams, result);
+
+        //wait for the move to finish
+        double timeInMilis = timeForMoveInSeconds * 1000 + timeForMoveInSeconds * 0.1;
+        std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(timeInMilis)));
+
+        BlockUntilQueueSize(1, 1);
+        return res;
     }
 
     ErrorCode Motor::RelativeMove(double distance, MotorSpeedProfile speedProfile)

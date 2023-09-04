@@ -99,6 +99,8 @@ namespace ControllerNS
 
         // Make sure we start all the axes at the same time
         InsertZeroMove(1);
+        int timeForLastMoveX = 0;
+        int timeForLastMoveY = 0;
 
         const auto pSize = path.size();
         for (size_t i = 0; i < pSize; i++)
@@ -115,6 +117,13 @@ namespace ControllerNS
 
             const double mmPerSecondX = mmToSpeedRatio * mAxes['X']->GetDistancePerRotation();
             const double mmPerSecondY = mmToSpeedRatio * mAxes['Y']->GetDistancePerRotation();
+
+            int sleepFor = timeForLastMoveX;
+            if (timeForLastMoveY > timeForLastMoveX)
+            {
+                sleepFor = timeForLastMoveY;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(sleepFor));
 
             mAxes['X']->BlockUntilQueueSize(1, 1);
             mAxes['Y']->BlockUntilQueueSize(1, 1);
@@ -147,11 +156,7 @@ namespace ControllerNS
                 auto rpmY = currentCommand.velocity;
 
                 /*Adjust the speed for the small move axis so it arrives in the same as the longer one*/
-                if (MathHelper::Equals(timeX, timeY))
-                {
-                    // OK, we do not need to adjust anything since the end time for both moves is equal
-                }
-                else if (timeX > timeY)
+                if (timeX > timeY)
                 {
                     if (moveDistY != 0)
                     {
@@ -221,6 +226,9 @@ namespace ControllerNS
                 {
                     rpmX *= -1;
                 }
+
+                timeForLastMoveX = static_cast<int>(timeX);
+                timeForLastMoveY = static_cast<int>(timeY);
 
                 std::vector<uint8_t> cmdParamsX{};
                 std::vector<Move> movesX{};
