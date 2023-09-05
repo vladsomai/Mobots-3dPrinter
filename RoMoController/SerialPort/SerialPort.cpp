@@ -178,12 +178,12 @@ namespace SerialPortNS
 
 		if (mPort != NULL)
 		{
-			LogService::Instance()->LogInfo("Port " + COM_PORT + " is now open.");
+			LogService::Instance()->LogInfo("Port " + COM_PATH + " is now open.");
 			return ErrorCode::NO_ERR;
 		}
 		else
 		{
-			LogService::Instance()->LogInfo("Port " + COM_PORT + " is invalid.");
+			LogService::Instance()->LogInfo("Port " + COM_PATH + " is invalid.");
 			return ErrorCode::INVALID_PORT;
 		}
 	}
