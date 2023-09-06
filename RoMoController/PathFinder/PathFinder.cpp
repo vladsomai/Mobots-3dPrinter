@@ -129,7 +129,7 @@ namespace PathFinderNS
         Point2d currentPoint = start;
 
         double totalAngle = Point2d::GetAngle(center, start, end);
-        const double circleDegStep = static_cast<double>(totalAngle) / 20;
+        const double circleDegStep = static_cast<double>(totalAngle) / resolution;
 
         for (double i = 0; i < totalAngle; i += circleDegStep)
         {
