@@ -129,17 +129,9 @@ namespace ControllerNS
             mAxes['Y']->BlockUntilQueueSize(1, 1);
             mAxes['Z']->BlockUntilQueueSize(1, 1);
 
-            //std::future<ErrorCode> zAxisTh{};
             if (hasZvalue)
             {
                 RelativeMoveRotation(currentCommand.z.value(), 60, 'Z');
-                /*zAxisTh = std::async(
-                    std::launch::async,
-                    &Controller::RelativeMoveRotation,
-                    this,
-                    currentCommand.z.value(),
-                    60,
-                    'Z');*/
             }
 
             if (hasXYvalue)
@@ -255,17 +247,6 @@ namespace ControllerNS
                     "_" +
                     std::to_string(timeY));
 
-   /*             if (hasZvalue)
-                {
-                    auto zThResult = AssureMovementDone(zAxisTh, "Z");
-                    if (zThResult != ErrorCode::NO_ERR)
-                    {
-                        return zThResult;
-                    }
-
-                    mAxes['Z']->BlockUntilQueueSize(1, 1);
-                }*/
-
                 // Move execution
                 std::vector<uint8_t> cmdResultX{};
                 std::future<ErrorCode> xAxisTh = std::async(std::launch::async, &Controller::Execute, this,
@@ -293,15 +274,7 @@ namespace ControllerNS
                 previousXyPoint = currentXyPoint;
                 // LogService::Instance()->StopTimer();
             }
-            
-            //if (hasZvalue)
-            //{
-            //    auto zThResult = AssureMovementDone(zAxisTh, "Z");
-            //    if (zThResult != ErrorCode::NO_ERR)
-            //    {
-            //        return zThResult;
-            //    }
-            //}
+
         }
 
         LogService::Instance()->LogInfo("Finished MoveWithVelocity");
