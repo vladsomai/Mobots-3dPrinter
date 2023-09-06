@@ -74,6 +74,7 @@ namespace GCodeLoaderNS
             {
                 LogService::Instance()->LogInfo("Line " + std::to_string(i + 1) + " could not be parsed");
                 LogService::Instance()->LogInfo(mGCodeCommands.at(i));
+                return res;
             }
         }
 
@@ -297,7 +298,7 @@ namespace GCodeLoaderNS
             }
         }
 
-        PathFinder::GetArc(mPreviousPoint, X, Y, I, J, isCounterClock, points, R, 100);
+        PathFinder::GetArc(mPreviousPoint, X, Y, I, J, isCounterClock, points, R, 3);
 
         if (X.has_value() && Y.has_value())
         {

@@ -269,11 +269,11 @@ namespace ControllerNS
                     return yThResult;
                 }
 
-                LogService::Instance()->LogInfo("Finished run " + std::to_string(i));
-
                 previousXyPoint = currentXyPoint;
                 // LogService::Instance()->StopTimer();
             }
+          
+            LogService::Instance()->LogInfo("Finished run " + std::to_string(i));
 
         }
 

@@ -45,7 +45,10 @@ int main()
 
 	std::vector<ControllerCommand> commands{};
 
-	loader.ParseFile(commands);
+	if (loader.ParseFile(commands) != ErrorCode::NO_ERR)
+	{
+		return -1;
+	}
 
 	std::vector<uint8_t> axes{ 'X','Y','Z' };
 	Controller printer(axes);
