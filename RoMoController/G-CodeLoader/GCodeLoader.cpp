@@ -298,7 +298,7 @@ namespace GCodeLoaderNS
             }
         }
 
-        PathFinder::GetArc(mPreviousPoint, X, Y, I, J, isCounterClock, points, R, 3);
+        PathFinder::GetArc(mPreviousPoint, X, Y, I, J, isCounterClock, points, R, 20);
 
         if (X.has_value() && Y.has_value())
         {

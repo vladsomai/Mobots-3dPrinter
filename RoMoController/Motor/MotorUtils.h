@@ -126,7 +126,6 @@ namespace MotorNS {
             return 0;
         }
 
-
         static void ConvertNumberTo6xUint8Vect(const double inputParam, std::vector<uint8_t>& result)
         {
             long long input = static_cast<long long>(inputParam);
@@ -148,25 +147,36 @@ namespace MotorNS {
 
         static void ConvertNumberTo4xUint8Vect(const double input, std::vector<uint8_t>& result)
         {
-            ConvertNumberTo4xUint8Vect(static_cast<uint32_t>(input), result);
-        }
-
-        static void ConvertNumberTo4xUint8Vect(const int32_t input, std::vector<uint8_t>& result)
-        {
-            ConvertNumberTo4xUint8Vect(static_cast<uint32_t>(input), result);
-        }
-
-        static void ConvertNumberTo4xUint8Vect(const uint32_t input, std::vector<uint8_t>& result)
-        {
             uint32_t b1mask{ 0x000000FF };
             uint32_t b2mask{ 0x0000FF00 };
             uint32_t b3mask{ 0x00FF0000 };
             uint32_t b4mask{ 0xFF000000 };
 
-            result.push_back(static_cast<uint8_t>( input & b1mask));
-            result.push_back(static_cast<uint8_t>((input & b2mask) >> 8));
-            result.push_back(static_cast<uint8_t>((input & b3mask) >> 16));
-            result.push_back(static_cast<uint8_t>((input & b4mask) >> 24));
+            if (input < 0)
+            {
+                if (input < INT32_MIN)
+                {
+                    return;
+                }
+
+                int32_t input_s = static_cast<int32_t>(input);
+                result.push_back(static_cast<uint8_t>(input_s & b1mask));
+                result.push_back(static_cast<uint8_t>((input_s & b2mask) >> 8));
+                result.push_back(static_cast<uint8_t>((input_s & b3mask) >> 16));
+                result.push_back(static_cast<uint8_t>((input_s & b4mask) >> 24));
+            }
+            else
+            {
+                if (input > UINT32_MAX)
+                {
+                    return;
+                }
+                uint32_t input_u = static_cast<uint32_t>(input);
+                result.push_back(static_cast<uint8_t>(input_u & b1mask));
+                result.push_back(static_cast<uint8_t>((input_u & b2mask) >> 8));
+                result.push_back(static_cast<uint8_t>((input_u & b3mask) >> 16));
+                result.push_back(static_cast<uint8_t>((input_u & b4mask) >> 24));
+            }
         }
 
         /*Get the travel distance in rotations*/
@@ -267,6 +277,7 @@ namespace MotorNS {
         {
             auto internalVelocity = RPM_ToInternalVelocity(rpm);
             auto comVelocity = InternalVelocityToCommVelocity(internalVelocity);
+
             MotorUtils::ConvertNumberTo4xUint8Vect(comVelocity, result);
         }
 
@@ -296,7 +307,7 @@ namespace MotorNS {
         static void GetPositionAndTime(const double rotations, const double time, std::vector<uint8_t>& rotationTime)
         {
             auto microsteps = RotationsToMicrosteps(rotations);
-            MotorUtils::ConvertNumberTo4xUint8Vect(microsteps, rotationTime);
+            MotorUtils::ConvertNumberTo4xUint8Vect(static_cast<double>(microsteps), rotationTime);
 
             std::vector<uint8_t> timeVector{};
             auto timesteps = SecondToTimesteps(time);
@@ -366,7 +377,7 @@ namespace MotorNS {
             }
 
             ByteList moveTypesVect{};
-            MotorUtils::ConvertNumberTo4xUint8Vect(moveTypes, moveTypesVect);
+            MotorUtils::ConvertNumberTo4xUint8Vect(static_cast<double>(moveTypes), moveTypesVect);
 
             command.insert(command.begin(),
                 { axis, static_cast<uint8_t>(Commands::MultiMove), cmdLength, //axis, cmd, length
