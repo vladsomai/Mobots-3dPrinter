@@ -99,12 +99,12 @@ namespace SerialPortNS
 		const std::string COM_PATH_PREFIX = "\\\\.\\";
 		COM_PATH = COM_PATH_PREFIX + COM_PORT;
 		
-		HANDLE hComm = CreateFile(COM_PATH.c_str(), 
-			GENERIC_READ | GENERIC_WRITE,      
-			0,                                 
-			NULL,                              
+		HANDLE hComm = CreateFile(COM_PATH.c_str(),
+			GENERIC_READ | GENERIC_WRITE,
+			0,
+			NULL,
 			OPEN_EXISTING,
-			FILE_FLAG_NO_BUFFERING | FILE_FLAG_OVERLAPPED,
+			FILE_FLAG_NO_BUFFERING,
 			NULL);
 
 		if (hComm == INVALID_HANDLE_VALUE)
@@ -114,18 +114,17 @@ namespace SerialPortNS
 		}
 
 		//abort any read/writes and clear the input/output buffers
-		PurgeComm(hComm, PURGE_RXABORT | PURGE_RXCLEAR | PURGE_TXABORT | PURGE_TXCLEAR);
+		//PurgeComm(hComm, PURGE_RXABORT | PURGE_RXCLEAR | PURGE_TXABORT | PURGE_TXCLEAR);
 
 		DCB dcbSerialParams{};
 		SecureZeroMemory(&dcbSerialParams, sizeof(DCB));
 		dcbSerialParams.DCBlength = sizeof(DCB);
-
-		GetCommState(hComm, &dcbSerialParams);
-		LogService::Instance()->LogInfo("Baudrate: " + std::to_string(dcbSerialParams.BaudRate) +
-			", StopBits: " + std::to_string(dcbSerialParams.StopBits) +
-			", Parity: " + std::to_string(dcbSerialParams.Parity) +
-			", ByteSize: " + std::to_string(dcbSerialParams.ByteSize));
-
+		
+		dcbSerialParams.fBinary = TRUE;
+		dcbSerialParams.XoffLim = 0x4000;
+		dcbSerialParams.XonChar = 0x11;
+		dcbSerialParams.XoffChar = 0x13;
+		
 		dcbSerialParams.BaudRate = 230400;      
 		dcbSerialParams.ByteSize = 8;             
 		dcbSerialParams.StopBits = ONESTOPBIT;    
@@ -138,6 +137,14 @@ namespace SerialPortNS
 			return ErrorCode::INVALID_PORT;
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(500));
+		
+		SecureZeroMemory(&dcbSerialParams, sizeof(DCB));
+		dcbSerialParams.DCBlength = sizeof(DCB);
+		GetCommState(hComm, &dcbSerialParams);
+		LogService::Instance()->LogInfo("Baudrate: " + std::to_string(dcbSerialParams.BaudRate) +
+			", StopBits: " + std::to_string(dcbSerialParams.StopBits) +
+			", Parity: " + std::to_string(dcbSerialParams.Parity) +
+			", ByteSize: " + std::to_string(dcbSerialParams.ByteSize));
 
 		CloseHandle(hComm);
 #else
