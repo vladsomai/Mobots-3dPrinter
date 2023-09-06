@@ -109,7 +109,7 @@ namespace SerialPortNS
 
 		if (hComm == INVALID_HANDLE_VALUE)
 		{
-			LogService::Instance()->LogInfo("Port " + COM_PORT + " is invalid.");
+			LogService::Instance()->LogInfo("Port " + COM_PATH + " is invalid, also make sure you set the read/write access writes.");
 			return ErrorCode::INVALID_PORT;
 		}
 
@@ -146,7 +146,7 @@ namespace SerialPortNS
 		//int fd = open(COM_PATH.c_str(), O_RDWR | O_NOCTTY);
 		//if (fd < 0) 
 		//{
-		//	LogService::Instance()->LogInfo("Port " + COM_PORT + " is invalid.");
+		//	LogService::Instance()->LogInfo("Port " + COM_PATH + " is invalid, also make sure you set the read/write access writes.");
 		//	return ErrorCode::INVALID_PORT;
 		//}
 		//
@@ -183,7 +183,7 @@ namespace SerialPortNS
 		}
 		else
 		{
-			LogService::Instance()->LogInfo("Port " + COM_PATH + " is invalid.");
+			LogService::Instance()->LogInfo("Port " + COM_PATH + " is invalid, also make sure you set the read/write access writes.");
 			return ErrorCode::INVALID_PORT;
 		}
 	}
