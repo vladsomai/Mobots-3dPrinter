@@ -8,7 +8,7 @@
 #include "../LogService/LogService.h"
 #include "../Motor/MotorUtils.h"
 #include "ControllerCommand.h"
-#include <future>
+
 
 namespace ControllerNS
 {
@@ -20,8 +20,9 @@ namespace ControllerNS
 	{
 	private:
 		std::unordered_map<uint8_t, std::unique_ptr<Motor>> mAxes{};
-
+		Point2d mCurrentXYcoord{};
 		ErrorCode AssureMovementDone(std::future<ErrorCode>& fut, const std::string& axis);
+
 	public:
 		Controller();
 		explicit Controller(std::vector<uint8_t> axes);
@@ -35,6 +36,9 @@ namespace ControllerNS
 
 		ErrorCode RelativeMove(double distance, MotorSpeedProfile speedProfile, uint8_t axis);
 		ErrorCode RelativeMoveRotation(double rotation, double rpm, uint8_t axis);
+
+		/*Create a group move, currently only saturated move type is supported(axes will arrive at the specified position at the same moment)*/
+		ErrorCode GroupRelativeMove(Point2d xyCoord, MotorSpeedProfile speedProfile, bool stop = true);
 
 		ErrorCode ExecuteMoveWithVelocity(std::vector<ControllerCommand>& path);
 		ErrorCode ExecuteBezierPath(std::vector<Point2d>& path);

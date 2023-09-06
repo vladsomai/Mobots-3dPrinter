@@ -10,6 +10,8 @@ namespace ControllerNS
 	using MotorNS::MotorSpeedProfile;
 	using MotorNS::MotorUtils;
 
+	/*This struct represents a data structure created by the GCode parser
+	  The data structure is sent to the Controller for exectution*/
 	struct ControllerCommand
 	{
 		std::optional<Point2d> xyPlane{ std::nullopt };

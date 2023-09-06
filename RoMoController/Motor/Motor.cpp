@@ -173,9 +173,6 @@ namespace MotorNS
                 break;
             }
 
-            //LogService::Instance()->LogInfo("QueueSize for axis "
-            //    + mAxisName + ": " + std::to_string(queueSize));
-
             if (queueSize > blockUntilQueueSizeLess)
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(timeToBlockBetweenPoll));
@@ -498,7 +495,7 @@ namespace MotorNS
         auto res = TrapezoidMove(cmdParams, result);
 
         //wait for the move to finish
-        double timeInMilis = timeForMoveInSeconds * 1000 + timeForMoveInSeconds * 0.1;
+        double timeInMilis = timeForMoveInSeconds * 1000 + 10;
         std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(timeInMilis)));
 
         BlockUntilQueueSize(1, 1);

@@ -315,19 +315,24 @@ namespace MotorNS {
             accelerationTime.insert(accelerationTime.end(), timeVector.begin(), timeVector.end());
         }
 
-        static void GetMultiMoveCommand(
+        static ErrorCode GetMultiMoveCommand(
             uint8_t axis,
             std::vector<Move> moves,
             std::vector<uint8_t>& command,
             bool insertEmptyFinalMove)
         {
-            //248 is the max uints we send in a 31 multi-move cmd
-            command.reserve(248);
-            std::vector<uint8_t> params{};
-
             size_t movesSize = moves.size();
 
+            if (movesSize > 31 || (movesSize > 30 && insertEmptyFinalMove))
+            {
+                //cannot send more than 31 moves in one shot
+                return ErrorCode::INVALID_PARAMETERS;
+            }
+
             uint8_t cmdLength = static_cast<uint8_t>(5 + (8 * movesSize));
+
+            command.reserve(cmdLength);
+            std::vector<uint8_t> params{};
 
             uint32_t moveTypes = 0;
 
@@ -356,7 +361,7 @@ namespace MotorNS {
                 uint32_t mask = 1 << movesSize;
                 moveTypes |= mask;
 
-                cmdLength += 8;
+                cmdLength += 8;//4 bytes velocity + 4 bytes time
                 movesSize += 1;
             }
 
@@ -377,6 +382,8 @@ namespace MotorNS {
                 ByteList lastCmd = { 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00 };
                 command.insert(command.end(), lastCmd.begin(), lastCmd.end());
             }
+
+            return ErrorCode::NO_ERR;
         }
     };
 

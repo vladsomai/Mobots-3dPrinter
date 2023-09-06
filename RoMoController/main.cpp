@@ -21,55 +21,50 @@ using namespace ConfigParserNS;
 
 int main()
 {
-	ConfigParser cfg{};
-	if (cfg.Load("config.ini") != ErrorCode::NO_ERR)
-	{
-		return -1;
-	}
+    ConfigParser cfg{};
+    if (cfg.Load("config.ini") != ErrorCode::NO_ERR)
+    {
+        return -1;
+    }
 
-	auto configParameters = cfg.GetConfigProps();
+    auto configParameters = cfg.GetConfigProps();
 
-	if (SerialPort::Instance()->Connect(configParameters[CFG_SERIAL_PORT]) != ErrorCode::NO_ERR)
-	{
-		LogService::Instance()->LogInfo("Cannot connect to serial port");
-		return -1;
-	}
+    if (SerialPort::Instance()->Connect(configParameters[CFG_SERIAL_PORT]) != ErrorCode::NO_ERR)
+    {
+        LogService::Instance()->LogInfo("Cannot connect to serial port");
+        return -1;
+    }
 
-	std::cout.precision(3);
+    std::cout.precision(3);
 
-	GCodeLoader loader{};
-	if (loader.Load(configParameters[CFG_GCODE_FILE_NAME]) != ErrorCode::NO_ERR)
-	{
-		return -1;
-	}
+    GCodeLoader loader{};
+    if (loader.Load(configParameters[CFG_GCODE_FILE_NAME]) != ErrorCode::NO_ERR)
+    {
+        return -1;
+    }
 
-	std::vector<ControllerCommand> commands{};
+    std::vector<ControllerCommand> commands{};
 
-	if (loader.ParseFile(commands) != ErrorCode::NO_ERR)
-	{
-		return -1;
-	}
+    if (loader.ParseFile(commands) != ErrorCode::NO_ERR)
+    {
+        return -1;
+    }
 
-	std::vector<uint8_t> axes{ 'X','Y','Z' };
-	Controller printer(axes);
+    std::vector<uint8_t> axes{'X', 'Y', 'Z'};
+    Controller printer(axes);
 
-	//while (true)
-	//{
-	//	auto res1 = printer.RelativeMove(10, MotorSpeedProfile::Fast, 'X');
-	//	if (res1 != ErrorCode::NO_ERR)
-	//		return -1;
+    //while (true)
+    //{
+    //     printer.GroupRelativeMove(Point2d(50, 50), MotorSpeedProfile::Fast);
+    //     printer.GroupRelativeMove(Point2d(0, 0), MotorSpeedProfile::Fast);
+    //}
+    //return 0;
 
-	//	auto res2 = printer.RelativeMove(-10, MotorSpeedProfile::Fast, 'X');
-	//	if (res2 != ErrorCode::NO_ERR)
-	//		return -1;
-	//}
-	//return 0;
-
-	long long counter = 0;
-	for (int i = 0; i < 1; i++)
-	{
-		LogService::Instance()->LogInfo("Starting cycle " + std::to_string(counter));
-		printer.ExecuteMoveWithVelocity(commands);
-		counter++;
-	}
+    long long counter = 0;
+    for (int i = 0; i < 1; i++)
+    {
+        LogService::Instance()->LogInfo("Starting cycle " + std::to_string(counter));
+        printer.ExecuteMoveWithVelocity(commands);
+        counter++;
+    }
 }

@@ -42,7 +42,7 @@ namespace SerialPortNS
 		auto cmdSize = command.size();
 
 		std::string stringCommand = "0x " + Utilities::ByteListToHexStr(command);
-		LogService::Instance()->LogInfo("SendAndWaitForReply -> Sending command: " + stringCommand);
+		LogService::Instance()->LogInfo("Sending command: " + stringCommand);
 
 		size_t result = fwrite(command.data(),
 			sizeof(uint8_t),
@@ -222,12 +222,12 @@ namespace SerialPortNS
 				because POSIX implementation of read may not block the fread call*/
 
 				fread(buffer, sizeof(uint8_t), 1, mPort);
-				
+
 				if (buffer[0] == 'R')
 				{
 					responseStarted = true;
 				}
-				
+
 				if (responseStarted)
 				{
 					//Received the first byte from response
@@ -237,8 +237,7 @@ namespace SerialPortNS
 			}
 
 			std::string stringResult = "0x " + Utilities::ByteListToHexStr(result);
-
-			LogService::Instance()->LogInfo("SendAndWaitForReply -> Received message: " + stringResult);
+			LogService::Instance()->LogInfo("Received message: " + stringResult);
 		}
 
 		return ErrorCode::NO_ERR;
