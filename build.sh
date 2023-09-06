@@ -1,5 +1,11 @@
 BUILD_TYPE=$1
 
+if [ $# -eq 0 ]  || [ -z "$1" ]
+then
+  echo "Expected Release or Debug as argument"
+  exit 1
+fi
+
 if [ $BUILD_TYPE != 'Release' ] && [ $BUILD_TYPE != 'Debug' ]
 then
   echo "Expected Release or Debug as argument"
