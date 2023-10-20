@@ -217,8 +217,8 @@ namespace ControllerNS
     ErrorCode Controller::ExecuteMoveWithVelocity(std::vector<ControllerCommand> &path)
     {
         // Make sure we start all the axes at the same time
-        int timeForLastMoveX = 0;
-        int timeForLastMoveY = 0;
+        double timeForLastMoveX = 0;
+        double timeForLastMoveY = 0;
 
         const auto pSize = path.size();
         for (size_t i = 0; i < pSize; i++)
@@ -230,10 +230,10 @@ namespace ControllerNS
             const bool hasXYvalue = currentCommand.xyPlane.has_value();
 
             /*Add some sleep to not overload the communication*/
-            int sleepFor = timeForLastMoveX;
+            int sleepFor = static_cast<int>(timeForLastMoveX * 1000);
             if (timeForLastMoveY > timeForLastMoveX)
             {
-                sleepFor = timeForLastMoveY;
+                sleepFor = static_cast<int>(timeForLastMoveY * 1000);
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(sleepFor));
 
@@ -349,8 +349,8 @@ namespace ControllerNS
                 }
 
                 /*X prepare the move command*/
-                timeForLastMoveX = static_cast<int>(timeX);
-                timeForLastMoveY = static_cast<int>(timeY);
+                timeForLastMoveX = timeX;
+                timeForLastMoveY = timeY;
 
                 std::vector<uint8_t> cmdParamsX{};
                 std::vector<Move> movesX{};
